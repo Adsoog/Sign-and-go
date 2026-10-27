@@ -174,11 +174,6 @@
       <div class="row justify-content-center text-center mb-5">
         <div class="col-lg-8">
           
-          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 bg-white border rounded-pill shadow-sm mb-3">
-            <span class="d-inline-block rounded-circle" style="width: 8px; height: 8px; background-color: #10B981;"></span>
-            <span class="small fw-semibold text-dark" style="font-size: 0.8125rem;">Gestión Documental &bull; Firma Confiable &bull; Trazabilidad</span>
-          </div>
-
           <h1 class="fw-extrabold text-dark display-5 mb-3" style="letter-spacing: -0.035em; line-height: 1.15;">
             Lleva el control de tus documentos,<br>
             <span class="text-primary" style="background: linear-gradient(135deg, #0284C7, #2563EB); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">fírmalos y sigue cada evento en tiempo real.</span>
@@ -352,35 +347,28 @@
     </div>
   </section>
 
-  <!-- CTA de Cierre -->
-  <section class="py-5 text-center bg-light border-top">
-    <div class="container py-4">
-      <div class="row justify-content-center">
-        <div class="col-lg-6">
-          <h3 class="fw-bold text-dark mb-2" style="letter-spacing: -0.025em;">Comienza a gestionar y firmar tus documentos</h3>
-          <p class="text-muted small mb-4">Lleva el control de todos tus archivos, fírmalos en segundos y mantén la trazabilidad de cada apertura.</p>
-          <div class="d-flex justify-content-center gap-3">
-            <a href="{% url 'accounts:register' %}" class="btn btn-dark px-4 py-2 rounded-pill fw-medium" style="background-color: #0F172A;">
-              Crear Cuenta Gratis
-            </a>
-            <a href="{% url 'accounts:login' %}" class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-medium bg-white">
-              Iniciar Sesión
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Footer Elegante -->
-  <footer class="py-4 border-top bg-white text-center small text-muted">
-    <div class="container">
-      <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
-        {% include "includes/brand_icon.html" %}
+  <!-- Footer en una sola fila -->
+  <footer class="py-4 border-top bg-white small text-muted">
+    <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-3 text-center text-md-start">
+      <div class="d-flex flex-wrap align-items-center gap-2 justify-content-center justify-content-md-start">
         <strong class="text-dark">Sign &amp; Go</strong>
+        <span class="text-muted d-none d-sm-inline">&bull;</span>
+        <span>Plataforma integral para gestión documental, firma digital y trazabilidad de eventos</span>
+        <span class="text-muted d-none d-sm-inline">&bull;</span>
+        <span>&copy; 2026 Todos los derechos reservados</span>
       </div>
-      <p class="mb-1 text-muted">Plataforma integral para gestión documental, firma digital y trazabilidad de eventos.</p>
-      <span style="font-size: 0.75rem;">&copy; 2026 Sign &amp; Go &bull; Todos los derechos reservados.</span>
+      <div class="d-flex align-items-center gap-3 justify-content-center">
+        <a href="https://adsoog.github.io/" target="_blank" rel="noopener" class="text-decoration-none text-dark fw-semibold d-inline-flex align-items-center gap-1">
+          <i class="bi bi-briefcase"></i>
+          <span>Portafolio</span>
+          <i class="bi bi-box-arrow-up-right" style="font-size: 0.65rem;"></i>
+        </a>
+        <span class="text-muted">&bull;</span>
+        <a href="https://wa.me/51983016855" target="_blank" rel="noopener" class="text-decoration-none text-muted d-inline-flex align-items-center gap-1">
+          <i class="bi bi-whatsapp text-success"></i>
+          <span>983016855</span>
+        </a>
+      </div>
     </div>
   </footer>
 
