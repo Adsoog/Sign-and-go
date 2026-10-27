@@ -71,7 +71,8 @@ def document_upload_view(request):
 def document_detail_view(request, pk):
     workspace = request.workspace
     doc = get_object_or_404(Document, pk=pk, workspace=workspace)
-    share_links = doc.share_links.all().order_by("-created_at")
+    # Single active public verification link (one link per document)
+    active_share_link = doc.share_links.filter(revoked_at__isnull=True).order_by("-created_at").first()
 
     # Metrics
     total_views = doc.events.filter(event_type__in=["web_visit", "web_preview"]).count()
@@ -92,7 +93,7 @@ def document_detail_view(request, pk):
         "documents/detail.html",
         {
             "doc": doc,
-            "share_links": share_links,
+            "active_share_link": active_share_link,
             "recent_events": clean_events[:6],
             "total_views": total_views,
             "total_downloads": total_downloads,

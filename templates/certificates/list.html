@@ -37,9 +37,9 @@
           <tr>
             <th class="ps-3 py-3">Perfil</th>
             <th class="py-3">Titular</th>
+            <th class="py-3">Organización</th>
             <th class="py-3">Emisor</th>
-            <th class="py-3">Fecha Vencimiento</th>
-            <th class="py-3 text-center">Vigencia</th>
+            <th class="py-3">Vencimiento</th>
             <th class="py-3 text-center">Estado</th>
             <th class="text-end pe-3 py-3">Acciones</th>
           </tr>
@@ -48,47 +48,38 @@
           {% for cert in certificates %}
           <tr>
             <!-- Columna 1: Nombre del Perfil -->
-            <td class="ps-3 fw-semibold text-dark">
+            <td class="ps-3 fw-semibold text-dark text-nowrap">
               <a href="{% url 'certificates:detail' cert.id %}" class="text-dark text-decoration-none">
                 <i class="bi bi-key text-dark me-1"></i>{{ cert.name }}
               </a>
             </td>
 
-            <!-- Columna 2: Titular -->
-            <td class="text-dark">
-              <span class="fw-semibold text-dark d-block">{{ cert.clean_subject_name }}</span>
-              {% if cert.organization_name %}
-                <span class="text-muted small" style="font-size: 0.75rem;">
-                  <i class="bi bi-building me-1"></i>{{ cert.organization_name }}{% if cert.country_code %} · {{ cert.country_code }}{% endif %}
-                </span>
-              {% endif %}
+            <!-- Columna 2: Titular (Un solo valor) -->
+            <td class="text-dark text-nowrap fw-semibold">
+              {{ cert.clean_subject_name }}
             </td>
 
-            <!-- Columna 3: Emisor -->
-            <td class="text-muted text-truncate" style="max-width: 180px;" title="{{ cert.issuer_name }}">
+            <!-- Columna 3: Organización (Un solo valor) -->
+            <td class="text-muted text-nowrap">
+              {{ cert.organization_name|default:"—" }}
+            </td>
+
+            <!-- Columna 4: Emisor -->
+            <td class="text-muted text-nowrap" title="{{ cert.issuer_name }}">
               {{ cert.issuer_name }}
             </td>
 
-            <!-- Columna 4: Fecha de Vencimiento -->
+            <!-- Columna 5: Fecha de Vencimiento -->
             <td class="text-muted text-nowrap">
               {{ cert.valid_until|date:"d/m/Y" }}
             </td>
 
-            <!-- Columna 5: Días Restantes -->
+            <!-- Columna 6: Estado -->
             <td class="text-center text-nowrap">
               {% if cert.is_expired %}
                 <span class="badge badge-subtle-danger">Caducado</span>
-              {% elif cert.is_expiring_soon %}
-                <span class="badge badge-subtle-warning">{{ cert.days_until_expiration }} días</span>
-              {% else %}
-                <span class="badge badge-subtle-success">{{ cert.days_until_expiration }} días restantes</span>
-              {% endif %}
-            </td>
-
-            <!-- Columna 6: Estado Activo / Inactivo -->
-            <td class="text-center text-nowrap">
-              {% if cert.is_active %}
-                <span class="badge badge-subtle-primary"><i class="bi bi-check-circle me-1"></i>Activo</span>
+              {% elif cert.is_active %}
+                <span class="badge badge-subtle-success"><i class="bi bi-check-circle me-1"></i>Activo</span>
               {% else %}
                 <span class="badge badge-subtle-secondary">Inactivo</span>
               {% endif %}

@@ -50,13 +50,13 @@
           <span class="badge bg-light text-muted border small">{{ doc.page_count }} págs</span>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <a href="{% if doc.is_signed %}{% url 'documents:view_file' doc.id 'signed' %}{% else %}{% url 'documents:view_file' doc.id 'source' %}{% endif %}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Abrir en pestaña nueva">
+          <a href="{% if doc.is_signed %}{% url 'documents:view_file' doc.id 'signed' %}{% else %}{% url 'documents:view_file' doc.id 'source' %}{% endif %}#view=FitH" class="btn btn-sm btn-outline-secondary" target="_blank" title="Abrir en pestaña nueva">
             <i class="bi bi-box-arrow-up-right me-1"></i> Pantalla Completa
           </a>
         </div>
       </div>
-      <div class="card-body p-0" style="height: 760px; background-color: #1E293B;">
-        <iframe src="{% url 'documents:view_file' doc.id doc.is_signed|yesno:'signed,source' %}" width="100%" height="100%" style="border: none; display: block;"></iframe>
+      <div class="card-body p-0" style="height: 760px; background-color: #0F172A;">
+        <iframe src="{% url 'documents:view_file' doc.id doc.is_signed|yesno:'signed,source' %}#view=FitH" width="100%" height="100%" style="border: none; display: block;"></iframe>
       </div>
     </div>
   </div>
@@ -105,88 +105,66 @@
       </div>
     </div>
 
-    <!-- 2. Public Links and QR Codes -->
+    <!-- 2. Public Link and QR Code (Single Official Link) -->
     <div class="card mb-4 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
       <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
         <span class="fw-bold text-dark"><i class="bi bi-qr-code me-2 text-dark"></i>Enlace y QR de Verificación</span>
-        {% if doc.is_signed %}
-          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#newLinkModal" style="font-size: 0.75rem;">
-            <i class="bi bi-plus-lg me-1"></i>Nuevo
-          </button>
+        {% if active_share_link %}
+          <span class="badge badge-subtle-success"><i class="bi bi-check-circle me-1"></i>Activo</span>
         {% endif %}
       </div>
-      <div class="card-body p-0 small">
-        {% if share_links %}
-        <div class="list-group list-group-flush">
-          {% for link in share_links %}
-          <div class="list-group-item p-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="d-flex align-items-center gap-2">
-                {% if link.is_active %}
-                  <span class="badge badge-subtle-success">Activo</span>
-                {% elif link.revoked_at %}
-                  <span class="badge badge-subtle-danger">Revocado</span>
-                {% else %}
-                  <span class="badge badge-subtle-warning">Caducado</span>
-                {% endif %}
-                <span class="text-muted" style="font-size: 0.72rem;">{{ link.created_at|date:"d/m/Y H:i" }}</span>
-              </div>
-              {% if link.is_active %}
-              <form method="post" action="{% url 'sharing:revoke' link.id %}" class="m-0 p-0" onsubmit="return confirm('¿Deseas revocar este enlace?');">
+      <div class="card-body p-3 small">
+        {% if active_share_link %}
+          <!-- 1-Click Copy and Open -->
+          <label class="text-muted small fw-semibold d-block mb-1">Enlace público de verificación:</label>
+          <div class="input-group input-group-sm mb-3" x-data="{ copied: false }">
+            <input type="text" class="form-control font-monospace" style="font-size: 0.75rem;" readonly value="{{ request.scheme }}://{{ request.get_host }}/d/{{ active_share_link.token_hash|slice:':16' }}/">
+            <button class="btn btn-dark" type="button" @click="navigator.clipboard.writeText($el.previousElementSibling.value); copied = true; setTimeout(() => copied = false, 2000)">
+              <span x-show="!copied"><i class="bi bi-clipboard me-1"></i>Copiar</span>
+              <span x-show="copied" class="text-success"><i class="bi bi-check-lg me-1"></i>¡Copiado!</span>
+            </button>
+            <a href="/d/{{ active_share_link.token_hash|slice:':16' }}/" target="_blank" class="btn btn-outline-secondary" title="Abrir página de verificación">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+          </div>
+
+          <!-- Clean QR Code Display -->
+          <div class="p-3 bg-light rounded-3 border text-center mb-3">
+            <span class="text-muted d-block small mb-2 fw-semibold">Código QR para escanear y validar:</span>
+            <img src="{% url 'sharing:public_qr' active_share_link.token_hash|slice:':16' %}" alt="QR Verificación" style="width: 140px; height: 140px;" class="img-fluid rounded border bg-white p-2 shadow-sm mb-2">
+            <div>
+              <a href="{% url 'sharing:public_qr' active_share_link.token_hash|slice:':16' %}" download="QR_Verificacion_{{ doc.id }}.png" class="btn btn-sm btn-outline-secondary" style="font-size: 0.75rem;">
+                <i class="bi bi-download me-1"></i>Descargar Imagen QR
+              </a>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between pt-1 border-top">
+            <span class="text-muted" style="font-size: 0.72rem;">
+              <i class="bi bi-shield-check text-success me-1"></i>Acceso: {{ active_share_link.expires_at|date:"d/m/Y"|default:"Permanente" }}
+            </span>
+            <form method="post" action="{% url 'sharing:revoke' active_share_link.id %}" class="m-0 p-0" onsubmit="return confirm('¿Deseas revocar este enlace? Ya no permitirá más accesos.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-link text-danger p-0 border-0 text-decoration-none" style="font-size: 0.75rem;">
+                <i class="bi bi-x-circle me-1"></i>Revocar enlace
+              </button>
+            </form>
+          </div>
+
+        {% else %}
+          <div class="text-center py-3 text-muted">
+            {% if doc.is_signed %}
+              <p class="small mb-3">No hay un enlace activo en este momento.</p>
+              <form method="post" action="{% url 'sharing:create' doc.id %}">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-link text-danger p-0 border-0 text-decoration-none" style="font-size: 0.75rem;">
-                  <i class="bi bi-x-circle me-1"></i>Revocar
+                <button type="submit" class="btn btn-sm btn-dark">
+                  <i class="bi bi-qr-code me-1"></i>Generar Enlace y QR
                 </button>
               </form>
-              {% endif %}
-            </div>
-
-            {% if link.is_active %}
-            <!-- 1-Click Copy and Open -->
-            <div class="input-group input-group-sm mb-2" x-data="{ copied: false }">
-              <input type="text" class="form-control font-monospace" style="font-size: 0.75rem;" readonly value="{{ request.scheme }}://{{ request.get_host }}/d/{{ link.token_hash|slice:':16' }}/">
-              <button class="btn btn-dark" type="button" @click="navigator.clipboard.writeText($el.previousElementSibling.value); copied = true; setTimeout(() => copied = false, 2000)">
-                <span x-show="!copied"><i class="bi bi-clipboard me-1"></i>Copiar</span>
-                <span x-show="copied" class="text-success"><i class="bi bi-check-lg me-1"></i>¡Copiado!</span>
-              </button>
-              <a href="/d/{{ link.token_hash|slice:':16' }}/" target="_blank" class="btn btn-outline-secondary" title="Abrir página de verificación">
-                <i class="bi bi-box-arrow-up-right"></i>
-              </a>
-            </div>
-
-            <!-- QR code toggle -->
-            <div class="d-flex align-items-center justify-content-between pt-1">
-              <a class="small text-decoration-none fw-semibold text-dark" data-bs-toggle="collapse" href="#qrCollapse_{{ link.id }}" role="button">
-                <i class="bi bi-qr-code me-1 text-primary"></i>Ver código QR
-              </a>
-              <span class="text-muted" style="font-size: 0.72rem;">Vence: {{ link.expires_at|date:"d/m/Y"|default:"Permanente" }}</span>
-            </div>
-
-            <div class="collapse text-center py-2 mt-2 bg-light rounded-3 border" id="qrCollapse_{{ link.id }}">
-              <img src="{% url 'sharing:public_qr' link.token_hash|slice:':16' %}" alt="QR Verificación" style="width: 130px; height: 130px;" class="img-fluid rounded border mb-2 bg-white p-1">
-              <div>
-                <a href="{% url 'sharing:public_qr' link.token_hash|slice:':16' %}" download="QR_Verificacion.png" class="btn btn-sm btn-outline-secondary" style="font-size: 0.72rem;">
-                  <i class="bi bi-download me-1"></i>Descargar QR
-                </a>
-              </div>
-            </div>
+            {% else %}
+              <p class="small mb-0">El enlace público y su código QR se generarán automáticamente al firmar el PDF.</p>
             {% endif %}
           </div>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="p-3 text-center text-muted">
-          No hay enlaces públicos activos.
-          {% if doc.is_signed %}
-            <div class="mt-2">
-              <button type="button" class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#newLinkModal">
-                <i class="bi bi-qr-code me-1"></i>Generar Enlace y QR
-              </button>
-            </div>
-          {% else %}
-            <span class="d-block small mt-1 text-muted">Disponible una vez firmado el PDF.</span>
-          {% endif %}
-        </div>
         {% endif %}
       </div>
     </div>
@@ -257,47 +235,6 @@
       </div>
     </div>
 
-  </div>
-</div>
-
-<!-- Modal: Generar nuevo enlace sin salir de la página -->
-<div class="modal fade" id="newLinkModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header">
-        <h5 class="modal-title fw-bold text-dark"><i class="bi bi-qr-code me-2"></i>Generar Enlace y QR Público</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="post" action="{% url 'sharing:create' doc.id %}">
-        {% csrf_token %}
-        <div class="modal-body">
-          <p class="text-muted small mb-3">Crea un enlace público seguro para compartir tu documento firmado y rastrear sus visitas.</p>
-          
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">Caducidad del enlace</label>
-            <select name="expires_days" class="form-select form-select-sm">
-              <option value="" selected>Permanente (sin fecha de caducidad)</option>
-              <option value="1">1 día</option>
-              <option value="7">7 días</option>
-              <option value="30">30 días</option>
-            </select>
-          </div>
-
-          <div class="form-check form-switch mb-2">
-            <input class="form-check-input" type="checkbox" name="allow_preview" id="modalPreview" checked>
-            <label class="form-check-label small" for="modalPreview">Permitir previsualización web en PDF</label>
-          </div>
-          <div class="form-check form-switch mb-2">
-            <input class="form-check-input" type="checkbox" name="allow_download" id="modalDownload" checked>
-            <label class="form-check-label small" for="modalDownload">Permitir descarga del PDF firmado</label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-sm btn-dark">Crear Enlace</button>
-        </div>
-      </form>
-    </div>
   </div>
 </div>
 {% endblock %}
