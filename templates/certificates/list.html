@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Bóveda de Certificados — Sign &amp; Go{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold text-dark mb-1">Bóveda de Certificados</h3>
+    <p class="text-muted small mb-0">Custodia cifrada de identidades criptográficas PKCS#12 (.p12 / .pfx)</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'certificates:generate' %}" class="btn btn-outline-primary d-flex align-items-center gap-1">
+      <i class="bi bi-magic"></i>
+      <span>Generar de Prueba</span>
+    </a>
+    <a href="{% url 'certificates:upload' %}" class="btn btn-primary d-flex align-items-center gap-1">
+      <i class="bi bi-cloud-arrow-up"></i>
+      <span>Subir Certificado (.p12/.pfx)</span>
+    </a>
+  </div>
+</div>
+
+<div class="alert alert-light border small text-muted mb-4 d-flex align-items-center gap-3">
+  <i class="bi bi-shield-lock-fill fs-4 text-dark"></i>
+  <div>
+    <strong>Cifrado autenticado en reposo:</strong> Los certificados se almacenan cifrados con AES fuera de la base de datos.
+    Tu contraseña personal nunca se guarda en el servidor y te será solicitada en cada operación de firma.
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    {% if certificates %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light small text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.03em;">
+          <tr>
+            <th class="ps-3 py-3">Perfil</th>
+            <th class="py-3">Titular</th>
+            <th class="py-3">Emisor</th>
+            <th class="py-3">Fecha Vencimiento</th>
+            <th class="py-3 text-center">Vigencia</th>
+            <th class="py-3 text-center">Estado</th>
+            <th class="text-end pe-3 py-3">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="small">
+          {% for cert in certificates %}
+          <tr>
+            <!-- Columna 1: Nombre del Perfil -->
+            <td class="ps-3 fw-semibold text-dark">
+              <a href="{% url 'certificates:detail' cert.id %}" class="text-dark text-decoration-none">
+                <i class="bi bi-key text-dark me-1"></i>{{ cert.name }}
+              </a>
+            </td>
+
+            <!-- Columna 2: Titular -->
+            <td class="text-dark">
+              <span class="fw-semibold text-dark d-block">{{ cert.clean_subject_name }}</span>
+              {% if cert.organization_name %}
+                <span class="text-muted small" style="font-size: 0.75rem;">
+                  <i class="bi bi-building me-1"></i>{{ cert.organization_name }}{% if cert.country_code %} · {{ cert.country_code }}{% endif %}
+                </span>
+              {% endif %}
+            </td>
+
+            <!-- Columna 3: Emisor -->
+            <td class="text-muted text-truncate" style="max-width: 180px;" title="{{ cert.issuer_name }}">
+              {{ cert.issuer_name }}
+            </td>
+
+            <!-- Columna 4: Fecha de Vencimiento -->
+            <td class="text-muted text-nowrap">
+              {{ cert.valid_until|date:"d/m/Y" }}
+            </td>
+
+            <!-- Columna 5: Días Restantes -->
+            <td class="text-center text-nowrap">
+              {% if cert.is_expired %}
+                <span class="badge badge-subtle-danger">Caducado</span>
+              {% elif cert.is_expiring_soon %}
+                <span class="badge badge-subtle-warning">{{ cert.days_until_expiration }} días</span>
+              {% else %}
+                <span class="badge badge-subtle-success">{{ cert.days_until_expiration }} días restantes</span>
+              {% endif %}
+            </td>
+
+            <!-- Columna 6: Estado Activo / Inactivo -->
+            <td class="text-center text-nowrap">
+              {% if cert.is_active %}
+                <span class="badge badge-subtle-primary"><i class="bi bi-check-circle me-1"></i>Activo</span>
+              {% else %}
+                <span class="badge badge-subtle-secondary">Inactivo</span>
+              {% endif %}
+            </td>
+
+            <!-- Columna 7: Acciones Limpias y Alineadas -->
+            <td class="text-end pe-3">
+              <div class="table-actions">
+                <a href="{% url 'certificates:detail' cert.id %}" class="btn-icon" title="Ver Metadatos y Huella">
+                  <i class="bi bi-eye"></i>
+                </a>
+
+                <form method="post" action="{% url 'certificates:toggle' cert.id %}" class="m-0 p-0 d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-icon" title="{% if cert.is_active %}Desactivar perfil{% else %}Activar perfil{% endif %}">
+                    <i class="bi bi-power {% if cert.is_active %}text-success{% else %}text-muted{% endif %}"></i>
+                  </button>
+                </form>
+
+                <a href="{% url 'certificates:delete' cert.id %}" class="btn-icon btn-icon-danger" title="Eliminar de Bóveda">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-safe text-muted fs-1 mb-2"></i>
+      <h5 class="fw-semibold text-dark">Tu bóveda está vacía</h5>
+      <p class="text-muted small mb-3">Sube tu certificado oficial (.p12 / .pfx) o genera uno de prueba para empezar a firmar.</p>
+      <div class="d-flex justify-content-center gap-2">
+        <a href="{% url 'certificates:generate' %}" class="btn btn-sm btn-outline-primary">Generar certificado de prueba</a>
+        <a href="{% url 'certificates:upload' %}" class="btn btn-sm btn-primary">Subir certificado existente</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

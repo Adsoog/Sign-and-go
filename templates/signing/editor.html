@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}Editor de Firma — {{ doc.title }} — Sign &amp; Go{% endblock %}
+
+{% block extra_css %}
+<style>
+  .editor-container {
+    background-color: #334155;
+    border-radius: 12px;
+    padding: 24px;
+    min-height: 750px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: auto;
+    position: relative;
+  }
+  .pdf-page-wrapper {
+    position: relative;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    background-color: #ffffff;
+    user-select: none;
+    line-height: 0;
+  }
+  #pdf-canvas {
+    display: block;
+  }
+  .sig-box {
+    position: absolute;
+    cursor: grab;
+    border: 2px solid #0f172a;
+    background: rgba(15, 23, 42, 0.08);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 6px;
+    touch-action: none;
+  }
+  .sig-box:active {
+    cursor: grabbing;
+  }
+  .sig-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #0f172a;
+    border: 2px solid white;
+    border-radius: 50%;
+    right: -6px;
+    bottom: -6px;
+    cursor: se-resize;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="pdfEditorApp()" x-init="initPdf('{% url 'documents:view_file' doc.id 'source' %}')" class="pb-5">
+  
+  <!-- Editor Top Bar -->
+  <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h4 class="fw-bold text-dark mb-0">{{ doc.title }}</h4>
+      </div>
+      <span class="text-muted small">Arrastra el recuadro para ubicar visualmente tu firma en la página deseada</span>
+    </div>
+
+    <!-- Controls -->
+    <div class="d-flex align-items-center gap-2 bg-white p-2 rounded-3 border shadow-sm">
+      <button @click="prevPage()" :disabled="pageNum <= 1" class="btn btn-sm btn-outline-secondary" title="Página anterior">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <span class="small px-2 fw-medium text-dark">
+        Pág. <span x-text="pageNum"></span> de <span x-text="totalPages"></span>
+      </span>
+      <button @click="nextPage()" :disabled="pageNum >= totalPages" class="btn btn-sm btn-outline-secondary" title="Página siguiente">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+
+      <div class="vr mx-1"></div>
+
+      <button @click="zoomOut()" class="btn btn-sm btn-outline-secondary" title="Reducir zoom">
+        <i class="bi bi-zoom-out"></i>
+      </button>
+      <span class="small px-1 text-muted" x-text="Math.round(scale * 100) + '%'"></span>
+      <button @click="zoomIn()" class="btn btn-sm btn-outline-secondary" title="Aumentar zoom">
+        <i class="bi bi-zoom-in"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- PDF Canvas Viewport -->
+    <div class="col-lg-8">
+      <div class="editor-container" id="editorContainer">
+        <div class="pdf-page-wrapper" id="pageWrapper" :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }">
+          <canvas id="pdf-canvas"></canvas>
+
+          <!-- Interactive Draggable Signature Box -->
+          <div class="sig-box"
+               id="sigBox"
+               :style="{ left: boxX + 'px', top: boxY + 'px', width: boxW + 'px', height: boxH + 'px' }"
+               @mousedown="startDrag($event)">
+            
+            <div class="d-flex align-items-center justify-content-between pointer-events-none">
+              <span class="badge bg-dark text-white" style="font-size: 0.65rem; background-color: #0f172a !important;">
+                <i class="bi bi-shield-check me-1"></i> FIRMA DIGITAL
+              </span>
+              <span class="text-dark fw-bold" style="font-size: 0.65rem;" x-text="'Pág. ' + pageNum"></span>
+            </div>
+
+            <div class="text-truncate small fw-semibold text-dark pointer-events-none" style="font-size: 0.75rem;">
+              <span x-text="selectedCertName || 'Firma Digital'"></span>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-end text-muted pointer-events-none" style="font-size: 0.6rem;">
+              <span>QR de verificación</span>
+              <i class="bi bi-qr-code fs-6 text-dark"></i>
+            </div>
+
+            <!-- Resize Handle -->
+            <div class="sig-handle" @mousedown.stop="startResize($event)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar: Signing configuration & confirmation -->
+    <div class="col-lg-4">
+      <div class="card p-4 mb-3 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-pen me-2"></i>Preparar Firma</h5>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-dark">Certificado de Firma</label>
+          {% if certificates %}
+          <select x-model="selectedCertId" @change="updateCertName($event)" class="form-select">
+            <option value="">-- Seleccionar certificado --</option>
+            {% for cert in certificates %}
+              <option value="{{ cert.id }}" data-name="{{ cert.name }}">{{ cert.name }} ({{ cert.clean_subject_name }})</option>
+            {% endfor %}
+          </select>
+          {% else %}
+          <div class="alert alert-warning p-2 small mb-2">
+            No tienes certificados en tu bóveda.
+          </div>
+          <a href="{% url 'certificates:generate' %}" class="btn btn-sm btn-outline-secondary w-100">
+            <i class="bi bi-magic me-1"></i> Generar certificado de prueba
+          </a>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-dark">Motivo de la firma</label>
+          <input type="text" x-model="reason" class="form-control" placeholder="Ej: Aprobación de documento">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-dark">Ciudad o Lugar (Opcional)</label>
+          <input type="text" x-model="location" class="form-control" placeholder="Ej: Madrid, Lima, Remoto...">
+        </div>
+
+        <div class="p-3 bg-light rounded-3 small mb-3 border">
+          <div class="fw-semibold mb-1 text-dark">Ubicación del recuadro:</div>
+          <div class="text-muted">Página: <span class="fw-bold text-dark" x-text="pageNum"></span></div>
+          <div class="text-muted">Posición X: <span class="font-monospace" x-text="(normX * 100).toFixed(1) + '%'"></span></div>
+          <div class="text-muted">Posición Y: <span class="font-monospace" x-text="(normY * 100).toFixed(1) + '%'"></span></div>
+          <div class="text-muted">Tamaño: <span class="font-monospace" x-text="(normW * 100).toFixed(1) + '% × ' + (normH * 100).toFixed(1) + '%'"></span></div>
+        </div>
+
+        <button @click="openConfirmModal()"
+                :disabled="!selectedCertId"
+                class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+          <i class="bi bi-pen"></i>
+          <span>Firmar Documento</span>
+        </button>
+      </div>
+
+      <div class="p-3 bg-light rounded-3 text-muted small border">
+        <i class="bi bi-shield-check text-success me-1"></i>
+        Al confirmar, el PDF quedará sellado digitalmente y se creará el QR de verificación pública.
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Prompt Modal -->
+  <div class="modal fade" id="passwordModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-shield-lock-fill text-primary me-2"></i>Contraseña del Certificado
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="isSigning"></button>
+        </div>
+        <div class="modal-body py-4">
+          <p class="small text-muted mb-3">
+            Introduce la contraseña para autorizar el desbloqueo del contenedor P12 en memoria. 
+            La contraseña <strong>nunca se almacenará</strong>.
+          </p>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Contraseña</label>
+            <input type="password" x-model="passphrase" @keydown.enter="submitSignature()" class="form-control" placeholder="••••••••" autofocus>
+          </div>
+
+          <template x-if="errorMessage">
+            <div class="alert alert-danger py-2 small mb-0" x-text="errorMessage"></div>
+          </template>
+
+          <template x-if="isSigning">
+            <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 mt-3">
+              <div class="spinner-border text-dark spinner-border-sm" role="status"></div>
+              <span class="small fw-semibold text-dark">Aplicando firma digital al documento...</span>
+            </div>
+          </template>
+        </div>
+        <div class="modal-footer border-top-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal" :disabled="isSigning">Cancelar</button>
+          <button type="button" @click="submitSignature()" :disabled="!passphrase || isSigning" class="btn btn-primary px-4">
+            <i class="bi bi-check-lg me-1"></i> Autorizar y Firmar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow text-center p-4">
+        <div class="text-success fs-1 mb-2">
+          <i class="bi bi-patch-check-fill"></i>
+        </div>
+        <h4 class="fw-bold text-dark mb-1">¡Documento Firmado con Éxito!</h4>
+        <p class="text-muted small mb-3">La firma criptográfica es válida y el documento ha quedado archivado de forma inmutable.</p>
+        
+        <div class="p-3 bg-light rounded-3 text-start small mb-4">
+          <div class="text-muted mb-1">Hash SHA-256 del documento final:</div>
+          <div class="font-monospace text-break text-success fw-bold" x-text="resultSha256"></div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-2">
+          <a :href="'{% url 'documents:detail' doc.id %}'" class="btn btn-primary px-4">
+            <i class="bi bi-eye me-1"></i> Ver Documento
+          </a>
+          <a x-show="resultVerifyUrl" :href="resultVerifyUrl" target="_blank" class="btn btn-outline-secondary px-3">
+            <i class="bi bi-box-arrow-up-right me-1"></i> Enlace Público
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PDF.js Local Vendor (Same-Origin, No CORS Restrictions) -->
+<script src="/static/vendor/pdfjs/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/vendor/pdfjs/pdf.worker.min.js';
+
+  // Store raw PDFDocument & RenderTask instances outside Alpine reactive Proxy
+  // to avoid JS private field (#d, #f) access errors in Proxies
+  let _activePdfDoc = null;
+  let _currentRenderTask = null;
+
+  function pdfEditorApp() {
+    return {
+      pageNum: 1,
+      totalPages: 1,
+      scale: 1.0,
+      canvasWidth: 600,
+      canvasHeight: 800,
+      
+      // Signature box dimensions in pixels
+      boxX: 60,
+      boxY: 600,
+      boxW: 240,
+      boxH: 100,
+
+      // Normalized coordinates (0.0 to 1.0)
+      normX: 0.1,
+      normY: 0.75,
+      normW: 0.4,
+      normH: 0.125,
+
+      // Signing form state
+      selectedCertId: '{{ certificates.0.id|default:"" }}',
+      selectedCertName: '{{ certificates.0.clean_subject_name|default:certificates.0.name|default:"" }}',
+      reason: 'Aprobado y Firmado',
+      location: '',
+      passphrase: '',
+      idempotencyKey: '{{ idempotency_key }}',
+
+      isSigning: false,
+      errorMessage: '',
+      resultSha256: '',
+      resultVerifyUrl: '',
+
+      isDragging: false,
+      isResizing: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      initBoxX: 0,
+      initBoxY: 0,
+      initBoxW: 0,
+      initBoxH: 0,
+
+      updateCertName(e) {
+        const opt = e.target.options[e.target.selectedIndex];
+        this.selectedCertName = opt ? opt.getAttribute('data-name') : '';
+      },
+
+      initPdf(url) {
+        const loadingTask = pdfjsLib.getDocument({
+          url: url,
+          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+          cMapPacked: true,
+          standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/',
+        });
+        loadingTask.promise.then(pdf => {
+          _activePdfDoc = pdf;
+          this.totalPages = pdf.numPages;
+          this.renderPage(this.pageNum);
+        }).catch(err => {
+          console.error('Error cargando documento PDF:', err);
+        });
+
+        // Global mouse listeners for drag & resize
+        window.addEventListener('mousemove', (e) => this.onMouseMove(e));
+        window.addEventListener('mouseup', () => this.onMouseUp());
+      },
+
+      renderPage(num) {
+        if (!_activePdfDoc) return;
+
+        if (_currentRenderTask) {
+          _currentRenderTask.cancel();
+          _currentRenderTask = null;
+        }
+
+        _activePdfDoc.getPage(num).then(page => {
+          const viewport = page.getViewport({ scale: this.scale });
+          const canvas = document.getElementById('pdf-canvas');
+          const ctx = canvas.getContext('2d');
+
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          this.canvasWidth = viewport.width;
+          this.canvasHeight = viewport.height;
+
+          // Clear and fill white before drawing glyphs
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          const renderContext = {
+            canvasContext: ctx,
+            viewport: viewport
+          };
+          _currentRenderTask = page.render(renderContext);
+          _currentRenderTask.promise.then(() => {
+            _currentRenderTask = null;
+            this.recalcPixelBoxFromNorm();
+          }).catch(err => {
+            if (err.name !== 'RenderingCancelledException') {
+              console.error('Error renderizando página PDF:', err);
+            }
+          });
+        }).catch(err => {
+          console.error('Error obteniendo página PDF:', err);
+        });
+      },
+
+      prevPage() {
+        if (this.pageNum <= 1) return;
+        this.pageNum--;
+        this.renderPage(this.pageNum);
+      },
+
+      nextPage() {
+        if (this.pageNum >= this.totalPages) return;
+        this.pageNum++;
+        this.renderPage(this.pageNum);
+      },
+
+      zoomIn() {
+        this.scale = Math.min(2.0, this.scale + 0.15);
+        this.renderPage(this.pageNum);
+      },
+
+      zoomOut() {
+        this.scale = Math.max(0.5, this.scale - 0.15);
+        this.renderPage(this.pageNum);
+      },
+
+      startDrag(e) {
+        this.isDragging = true;
+        this.dragStartX = e.clientX;
+        this.dragStartY = e.clientY;
+        this.initBoxX = this.boxX;
+        this.initBoxY = this.boxY;
+      },
+
+      startResize(e) {
+        this.isResizing = true;
+        this.dragStartX = e.clientX;
+        this.dragStartY = e.clientY;
+        this.initBoxW = this.boxW;
+        this.initBoxH = this.boxH;
+      },
+
+      onMouseMove(e) {
+        if (this.isDragging) {
+          const dx = e.clientX - this.dragStartX;
+          const dy = e.clientY - this.dragStartY;
+          let newX = this.initBoxX + dx;
+          let newY = this.initBoxY + dy;
+
+          // Clamping inside canvas
+          newX = Math.max(0, Math.min(this.canvasWidth - this.boxW, newX));
+          newY = Math.max(0, Math.min(this.canvasHeight - this.boxH, newY));
+
+          this.boxX = newX;
+          this.boxY = newY;
+          this.recalcNormFromPixels();
+        } else if (this.isResizing) {
+          const dx = e.clientX - this.dragStartX;
+          const dy = e.clientY - this.dragStartY;
+          let newW = Math.max(120, Math.min(this.canvasWidth - this.boxX, this.initBoxW + dx));
+          let newH = Math.max(50, Math.min(this.canvasHeight - this.boxY, this.initBoxH + dy));
+
+          this.boxW = newW;
+          this.boxH = newH;
+          this.recalcNormFromPixels();
+        }
+      },
+
+      onMouseUp() {
+        this.isDragging = false;
+        this.isResizing = false;
+      },
+
+      recalcNormFromPixels() {
+        this.normX = this.boxX / this.canvasWidth;
+        this.normY = this.boxY / this.canvasHeight;
+        this.normW = this.boxW / this.canvasWidth;
+        this.normH = this.boxH / this.canvasHeight;
+      },
+
+      recalcPixelBoxFromNorm() {
+        this.boxX = this.normX * this.canvasWidth;
+        this.boxY = this.normY * this.canvasHeight;
+        this.boxW = this.normW * this.canvasWidth;
+        this.boxH = this.normH * this.canvasHeight;
+      },
+
+      openConfirmModal() {
+        this.errorMessage = '';
+        this.passphrase = '';
+        const modal = new bootstrap.Modal(document.getElementById('passwordModal'));
+        modal.show();
+      },
+
+      submitSignature() {
+        if (!this.passphrase) return;
+        this.isSigning = true;
+        this.errorMessage = '';
+
+        const payload = {
+          certificate_id: this.selectedCertId,
+          passphrase: this.passphrase,
+          page_number: this.pageNum,
+          x: this.normX,
+          y: this.normY,
+          width: this.normW,
+          height: this.normH,
+          reason: this.reason,
+          location: this.location,
+          idempotency_key: this.idempotencyKey,
+        };
+
+        fetch('{% url "signing:execute" doc.id %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+          },
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json().then(data => ({ status: res.status, ok: res.ok, body: data })))
+        .then(res => {
+          this.isSigning = false;
+          if (res.ok && res.body.success) {
+            bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+            this.resultSha256 = res.body.signed_sha256;
+            this.resultVerifyUrl = res.body.verification_url;
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            successModal.show();
+          } else {
+            this.errorMessage = res.body.error || 'Ocurrió un error al firmar el documento.';
+          }
+        })
+        .catch(err => {
+          this.isSigning = false;
+          this.errorMessage = 'Error de conexión con el servidor: ' + err.message;
+        });
+      }
+    };
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar Documento — Sign &amp; Go{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card p-4 text-center border-danger">
+      <div class="text-danger fs-1 mb-3">
+        <i class="bi bi-trash"></i>
+      </div>
+      <h5 class="fw-bold text-dark mb-2">¿Eliminar este documento?</h5>
+      <p class="text-muted small mb-4">
+        Estás a punto de eliminar <strong>{{ doc.title }}</strong> ({{ doc.original_filename }}). 
+        Se revocarán todos los enlaces asociados y los archivos serán retirados del almacenamiento.
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="d-flex justify-content-center gap-2">
+          <a href="{% url 'documents:detail' doc.id %}" class="btn btn-light px-4">Cancelar</a>
+          <button type="submit" class="btn btn-danger px-4">Sí, eliminar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

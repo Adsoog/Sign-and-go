@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Documentos — Sign &amp; Go{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold text-dark mb-1">Mis Documentos</h3>
+    <p class="text-muted small mb-0">Repositorio privado de documentos PDF firmados e inmutables</p>
+  </div>
+  <div>
+    <a href="{% url 'documents:upload' %}" class="btn btn-primary d-flex align-items-center gap-2">
+      <i class="bi bi-cloud-arrow-up"></i>
+      <span>Subir Nuevo PDF</span>
+    </a>
+  </div>
+</div>
+
+<!-- Search & Filters -->
+<div class="card mb-4 p-3 bg-white">
+  <form method="get" class="row g-2 align-items-center">
+    <div class="col-md-6">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Buscar por título de documento..." value="{{ q }}">
+      </div>
+    </div>
+    <div class="col-md-4">
+      <select name="status" class="form-select form-select-sm">
+        <option value="">Todos los estados</option>
+        {% for code, label in status_choices %}
+          <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-sm btn-outline-primary w-100">Filtrar</button>
+      {% if q or status %}
+        <a href="{% url 'documents:list' %}" class="btn btn-sm btn-light" title="Limpiar"><i class="bi bi-x-lg"></i></a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Documents Table: Each value in its own clear column -->
+<div class="card">
+  <div class="card-body p-0">
+    {% if documents %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light small text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.03em;">
+          <tr>
+            <th class="ps-3 py-3">Título</th>
+            <th class="py-3">Archivo Original</th>
+            <th class="py-3 text-center">Págs</th>
+            <th class="py-3">Estado</th>
+            <th class="py-3">Huella SHA-256</th>
+            <th class="py-3">Fecha de Subida</th>
+            <th class="py-3 text-end pe-3">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="small">
+          {% for doc in documents %}
+          <tr>
+            <!-- Columna 1: Título -->
+            <td class="ps-3 fw-semibold text-dark">
+              <a href="{% url 'documents:detail' doc.id %}" class="text-dark text-decoration-none">
+                {{ doc.title }}
+              </a>
+            </td>
+
+            <!-- Columna 2: Nombre del archivo original -->
+            <td class="text-muted text-truncate" style="max-width: 220px;" title="{{ doc.original_filename }}">
+              <i class="bi bi-file-earmark-pdf text-danger me-1"></i>{{ doc.original_filename }}
+            </td>
+
+            <!-- Columna 3: Número de páginas -->
+            <td class="text-center">
+              <span class="badge bg-light text-dark border">{{ doc.page_count }}</span>
+            </td>
+
+            <!-- Columna 4: Estado -->
+            <td>
+              {% if doc.status == 'signed' %}
+                <span class="badge badge-subtle-success px-2 py-1"><i class="bi bi-check-circle me-1"></i>Firmado</span>
+              {% elif doc.status == 'uploaded' %}
+                <span class="badge badge-subtle-warning px-2 py-1"><i class="bi bi-clock me-1"></i>Sin firmar</span>
+              {% elif doc.status == 'failed' %}
+                <span class="badge badge-subtle-danger px-2 py-1"><i class="bi bi-x-circle me-1"></i>Fallido</span>
+              {% else %}
+                <span class="badge badge-subtle-secondary px-2 py-1">{{ doc.get_status_display }}</span>
+              {% endif %}
+            </td>
+
+            <!-- Columna 5: Hash SHA-256 firmado -->
+            <td class="font-monospace text-muted">
+              {% if doc.signed_sha256 %}
+                <span class="badge bg-light text-dark border font-monospace text-truncate" style="max-width: 140px;" title="{{ doc.signed_sha256 }}">
+                  {{ doc.signed_sha256|truncatechars:16 }}
+                </span>
+              {% else %}
+                <span class="text-muted fst-italic">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Columna 6: Fecha -->
+            <td class="text-muted text-nowrap">
+              {{ doc.created_at|date:"d/m/Y H:i" }}
+            </td>
+
+            <!-- Columna 7: Acciones ordenadas y alineadas -->
+            <td class="text-end pe-3">
+              <div class="table-actions">
+                {% if not doc.is_signed %}
+                  <a href="{% url 'signing:editor' doc.id %}" class="btn-action btn btn-sm btn-primary" title="Firmar PDF">
+                    <i class="bi bi-pen"></i>
+                    <span>Firmar</span>
+                  </a>
+                {% else %}
+                  <a href="{% url 'documents:download' doc.id 'signed' %}" class="btn-icon btn-icon-success" title="Descargar PDF Firmado">
+                    <i class="bi bi-download"></i>
+                  </a>
+                {% endif %}
+                <a href="{% url 'documents:detail' doc.id %}" class="btn-icon" title="Ver Detalle y QR">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="p-3 border-top d-flex justify-content-center">
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}">Anterior</a></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}">Siguiente</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-folder2-open text-muted fs-1 mb-2"></i>
+      <h5 class="fw-semibold text-dark">No se encontraron documentos</h5>
+      <p class="text-muted small mb-3">No hay archivos que coincidan con los criterios de búsqueda.</p>
+      <a href="{% url 'documents:upload' %}" class="btn btn-sm btn-primary">Subir documento ahora</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

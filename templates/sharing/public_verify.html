@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Verificación de Documento — {{ doc.title }} — Sign &amp; Go{% endblock %}
+
+{% block public_content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10 col-xl-9">
+    
+    <!-- Header Brand -->
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
+      <div class="d-flex align-items-center gap-2">
+        <div class="sb-brand-icon" style="width: 36px; height: 36px;">
+          <i class="bi bi-shield-check"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold text-dark">Sign &amp; Go</h5>
+          <span class="text-muted" style="font-size: 0.75rem;">Servicio de Validación Criptográfica</span>
+        </div>
+      </div>
+      <div>
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+          <i class="bi bi-check-circle-fill me-1"></i> Documento Verificado
+        </span>
+      </div>
+    </div>
+
+    <!-- Verification Summary Card -->
+    <div class="card p-4 mb-4 border-0 shadow-sm">
+      <div class="row g-4 align-items-center">
+        <div class="col-md-8">
+          <span class="badge badge-subtle-primary mb-2">Certificado Digital PAdES</span>
+          <h3 class="fw-bold text-dark mb-1">{{ doc.title }}</h3>
+          <p class="text-muted small mb-3">Archivo: {{ doc.original_filename }} ({{ doc.page_count }} páginas)</p>
+
+          <dl class="row mb-0 small">
+            <dt class="col-sm-4 text-muted">Firmante / Titular:</dt>
+            <dd class="col-sm-8 fw-semibold text-dark">{{ cert.name|default:"Firmante Autorizado" }} ({{ cert.subject_name|truncatechars:35 }})</dd>
+
+            <dt class="col-sm-4 text-muted">Autoridad Emisora:</dt>
+            <dd class="col-sm-8 text-dark">{{ cert.issuer_name|truncatechars:35 }}</dd>
+
+            <dt class="col-sm-4 text-muted">Fecha de Firma:</dt>
+            <dd class="col-sm-8 text-dark">{{ doc.signed_at|date:"d/m/Y H:i:s" }} UTC</dd>
+
+            <dt class="col-sm-4 text-muted">Huella SHA-256:</dt>
+            <dd class="col-sm-8 font-monospace text-muted text-break">{{ doc.signed_sha256 }}</dd>
+          </dl>
+        </div>
+
+        <div class="col-md-4 text-md-end text-center border-start-md ps-md-4">
+          <div class="p-3 bg-light rounded-3 d-inline-block text-center border">
+            <i class="bi bi-patch-check-fill text-success fs-1 mb-1 d-block"></i>
+            <div class="fw-bold text-dark small">Integridad Intacta</div>
+            <div class="text-muted" style="font-size: 0.7rem;">Sin alteraciones posteriores</div>
+          </div>
+          {% if link.allow_download %}
+          <div class="mt-3">
+            <a href="{% url 'sharing:public_download' token %}" class="btn btn-primary btn-sm w-100">
+              <i class="bi bi-download me-1"></i> Descargar Original Firmado
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Embedded Viewer if preview is allowed -->
+    {% if link.allow_preview %}
+    <div class="card mb-4">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold small"><i class="bi bi-file-earmark-pdf me-2"></i>Visualizador de Documento Firmado</span>
+        {% if link.allow_download %}
+          <a href="{% url 'sharing:public_download' token %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download me-1"></i> Descargar
+          </a>
+        {% endif %}
+      </div>
+      <div class="card-body p-0">
+        <iframe src="{% url 'sharing:public_preview' token %}" style="width: 100%; height: 750px; border: none; border-radius: 0 0 12px 12px;"></iframe>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer Security Notice -->
+    <div class="text-center text-muted small py-3">
+      <p class="mb-1">
+        <i class="bi bi-shield-lock me-1"></i>
+        Este documento cuenta con firma electrónica criptográfica calculada con estándares internacionales PAdES.
+      </p>
+      <span>Sign &amp; Go © Todos los derechos reservados.</span>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

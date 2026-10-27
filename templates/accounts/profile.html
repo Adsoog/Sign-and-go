@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Perfil — Sign &amp; Go{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold text-dark mb-1">Configuración de Cuenta</h3>
+    <p class="text-muted small mb-0">Gestiona los datos de tu perfil y la información de tu espacio personal.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Profile Form Column -->
+  <div class="col-lg-8">
+    <div class="card p-4 p-md-5 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+        <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 1.35rem; background-color: #0F172A !important;">
+          <i class="bi bi-person"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold text-dark">{{ user.full_name|default:user.email }}</h5>
+          <span class="text-muted small">{{ user.email }}</span>
+        </div>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 small rounded-3 mb-3">
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark">Correo Electrónico Principal</label>
+          <input type="text" class="form-control bg-light" value="{{ user.email }}" disabled>
+          <div class="form-text text-muted small">Tu dirección de correo vinculada a tu cuenta de Sign &amp; Go.</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark" for="{{ form.full_name.id_for_label }}">Nombre Completo o Razón Social</label>
+          {{ form.full_name }}
+          {% if form.full_name.errors %}
+            <div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-primary d-flex align-items-center gap-2">
+            <i class="bi bi-check2"></i>
+            <span>Guardar Cambios</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Helpful Side Guide Column -->
+  <div class="col-lg-4">
+    <div class="card p-4 border-0 shadow-sm mb-4" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <h6 class="fw-bold text-dark mb-3">
+        <i class="bi bi-shield-check me-2 text-dark"></i>Espacio Privado
+      </h6>
+      <ul class="list-unstyled small text-muted mb-0 d-flex flex-column gap-3">
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-check2 text-success fs-5"></i>
+          <div>
+            <strong class="text-dark d-block">Espacio de trabajo dedicado</strong>
+            Tus certificados, firmas y documentos están estrictamente aislados y protegidos.
+          </div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-calendar-event text-dark fs-5"></i>
+          <div>
+            <strong class="text-dark d-block">Miembro desde</strong>
+            {{ user.date_joined|date:"d/m/Y" }}
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

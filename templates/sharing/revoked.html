@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Enlace Revocado — SignBox{% endblock %}
+
+{% block public_content %}
+<div class="row justify-content-center min-vh-75 align-items-center mt-5">
+  <div class="col-md-6 col-lg-5 text-center">
+    <div class="card p-5 border-0 shadow-sm">
+      <i class="bi bi-slash-circle text-danger fs-1 mb-3"></i>
+      <h4 class="fw-bold text-dark mb-2">Este enlace ha sido revocado</h4>
+      <p class="text-muted small mb-4">
+        El emisor o propietario del documento ha revocado el acceso público a través de este enlace. 
+        El documento no puede ser visualizado ni descargado mediante este identificador.
+      </p>
+      <div>
+        <a href="{% url 'verification:compare' %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-patch-check me-1"></i> Ir al verificador general de PDF
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

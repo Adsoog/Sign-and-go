@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}{{ doc.title }} — Sign &amp; Go{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h3 class="fw-bold text-dark mb-0">{{ doc.title }}</h3>
+      {% if doc.is_signed %}
+        <span class="badge badge-subtle-success"><i class="bi bi-shield-check me-1"></i>Firmado Digitalmente</span>
+      {% else %}
+        <span class="badge badge-subtle-warning"><i class="bi bi-clock me-1"></i>Sin Firmar</span>
+      {% endif %}
+    </div>
+    <span class="text-muted small">Archivo: {{ doc.original_filename }} &bull; {{ doc.page_count }} páginas &bull; {{ doc.file_size|filesizeformat }}</span>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2">
+    {% if not doc.is_signed %}
+      <a href="{% url 'signing:editor' doc.id %}" class="btn btn-primary d-flex align-items-center gap-2">
+        <i class="bi bi-pen"></i>
+        <span>Firmar Documento</span>
+      </a>
+    {% else %}
+      <a href="{% url 'signing:editor' doc.id %}" class="btn btn-outline-secondary d-flex align-items-center gap-1">
+        <i class="bi bi-pen"></i>
+        <span>Volver a Firmar</span>
+      </a>
+      <a href="{% url 'sharing:create' doc.id %}" class="btn btn-outline-secondary d-flex align-items-center gap-1">
+        <i class="bi bi-share"></i>
+        <span>Generar Enlace / QR</span>
+      </a>
+      <a href="{% url 'documents:download' doc.id 'signed' %}" class="btn btn-dark d-flex align-items-center gap-1">
+        <i class="bi bi-download"></i>
+        <span>Descargar PDF Firmado</span>
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left column: Full-space Document Previewer -->
+  <div class="col-lg-8">
+    <div class="card overflow-hidden border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-file-earmark-pdf fs-5 text-dark"></i>
+          <span class="fw-bold text-dark">Visualizador de Documento</span>
+          <span class="badge bg-light text-muted border small">{{ doc.page_count }} págs</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a href="{% if doc.is_signed %}{% url 'documents:view_file' doc.id 'signed' %}{% else %}{% url 'documents:view_file' doc.id 'source' %}{% endif %}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Abrir en pestaña nueva">
+            <i class="bi bi-box-arrow-up-right me-1"></i> Pantalla Completa
+          </a>
+        </div>
+      </div>
+      <div class="card-body p-0" style="height: 760px; background-color: #1E293B;">
+        <iframe src="{% url 'documents:view_file' doc.id doc.is_signed|yesno:'signed,source' %}" width="100%" height="100%" style="border: none; display: block;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: Cryptographic Hashes, Public Links, Tracking & Management -->
+  <div class="col-lg-4">
+
+    <!-- 1. Cryptographic Hashes (SHA-256) -->
+    <div class="card mb-4 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <div class="card-header bg-white py-3">
+        <span class="fw-bold text-dark"><i class="bi bi-fingerprint me-2 text-dark"></i>Huellas Criptográficas</span>
+      </div>
+      <div class="card-body p-3 small">
+        <div class="mb-3">
+          <label class="text-muted small fw-semibold d-block mb-1">Hash SHA-256 Original (Pre-firma):</label>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace" value="{{ doc.source_sha256 }}" readonly style="font-size: 0.72rem;">
+            <a href="{% url 'documents:download' doc.id 'source' %}" class="btn btn-outline-secondary" title="Descargar archivo original">
+              <i class="bi bi-download"></i>
+            </a>
+          </div>
+        </div>
+
+        {% if doc.is_signed %}
+        <div class="mb-3">
+          <label class="text-success small fw-semibold d-block mb-1">Hash SHA-256 Sellado (Inmutable):</label>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace border-success text-success fw-bold" value="{{ doc.signed_sha256 }}" readonly style="font-size: 0.72rem;">
+            <a href="{% url 'documents:download' doc.id 'signed' %}" class="btn btn-outline-secondary" title="Descargar PDF firmado">
+              <i class="bi bi-download"></i>
+            </a>
+          </div>
+          <span class="text-muted d-block mt-1" style="font-size: 0.72rem;">
+            <i class="bi bi-check-circle text-success me-1"></i>Documento sellado contra modificaciones.
+          </span>
+        </div>
+        {% endif %}
+
+        {% if doc.certificate_profile %}
+        <div class="p-2 bg-light rounded-3 border mt-3">
+          <span class="text-muted d-block" style="font-size: 0.75rem;">Certificado aplicado:</span>
+          <strong class="text-dark d-block">{{ doc.certificate_profile.name }}</strong>
+          <span class="text-muted d-block" style="font-size: 0.75rem;">{{ doc.certificate_profile.clean_subject_name }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 2. Public Links and QR Codes -->
+    <div class="card mb-4 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <span class="fw-bold text-dark"><i class="bi bi-qr-code me-2 text-dark"></i>Enlaces y QR Públicos</span>
+        {% if doc.is_signed %}
+          <a href="{% url 'sharing:create' doc.id %}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.75rem;">
+            <i class="bi bi-plus-lg me-1"></i>Nuevo
+          </a>
+        {% endif %}
+      </div>
+      <div class="card-body p-0 small">
+        {% if share_links %}
+        <div class="list-group list-group-flush">
+          {% for link in share_links %}
+          <div class="list-group-item p-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              {% if link.is_active %}
+                <span class="badge badge-subtle-success">Activo</span>
+              {% elif link.revoked_at %}
+                <span class="badge badge-subtle-danger">Revocado</span>
+              {% else %}
+                <span class="badge badge-subtle-warning">Caducado</span>
+              {% endif %}
+              <span class="text-muted" style="font-size: 0.72rem;">{{ link.created_at|date:"d/m/Y" }}</span>
+            </div>
+            
+            <div class="text-muted mt-1" style="font-size: 0.75rem;">
+              Vence: {{ link.expires_at|date:"d/m/Y"|default:"Permanente" }}
+            </div>
+
+            {% if link.is_active %}
+            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+              <a href="/d/{{ link.token_hash|slice:':16' }}/" target="_blank" class="small text-decoration-none">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Abrir
+              </a>
+              <form method="post" action="{% url 'sharing:revoke' link.id %}" class="m-0 p-0 d-inline" onsubmit="return confirm('¿Deseas revocar este enlace?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm text-danger p-0 border-0" style="font-size: 0.75rem;">
+                  <i class="bi bi-x-circle me-1"></i>Revocar
+                </button>
+              </form>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-3 text-center text-muted">
+          No hay enlaces públicos activos.
+          {% if doc.is_signed %}
+            <div class="mt-2">
+              <a href="{% url 'sharing:create' doc.id %}" class="btn btn-sm btn-outline-secondary">Generar Enlace / QR</a>
+            </div>
+          {% else %}
+            <span class="d-block small mt-1 text-muted">Disponible una vez firmado el PDF.</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 3. Tracking & Event History -->
+    <div class="card mb-4 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <span class="fw-bold text-dark"><i class="bi bi-activity me-2 text-dark"></i>Trazabilidad y Visitas</span>
+        <a href="{% url 'tracking:document_events' doc.id %}" class="small text-decoration-none">Ver todo</a>
+      </div>
+      <div class="card-body p-3">
+        {% if recent_events %}
+        <div class="timeline">
+          {% for ev in recent_events %}
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="small fw-semibold text-dark">{{ ev.get_event_type_display }}</div>
+            <div class="text-muted" style="font-size: 0.72rem;">
+              {{ ev.occurred_at|date:"d M Y, H:i" }} &bull; IP: {{ ev.ip_anonymized }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-3 text-muted small">
+          <i class="bi bi-radar fs-4 d-block mb-1"></i>
+          Sin visitas registradas aún.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 4. Document Management Actions -->
+    <div class="card border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <div class="card-body p-3 d-flex justify-content-between align-items-center">
+        <span class="text-muted small">Zona de peligro:</span>
+        <a href="{% url 'documents:delete' doc.id %}" class="btn btn-sm btn-outline-danger">
+          <i class="bi bi-trash me-1"></i> Eliminar Documento
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

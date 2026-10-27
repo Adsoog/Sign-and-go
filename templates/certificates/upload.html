@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Añadir Certificado — Sign &amp; Go{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold text-dark mb-1">Añadir Certificado Digital</h3>
+    <p class="text-muted small mb-0">Custodia cifrada de tus credenciales PKCS#12 (.p12 / .pfx) para firma electrónica.</p>
+  </div>
+  <div>
+    <a href="{% url 'certificates:list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+      <i class="bi bi-arrow-left"></i>
+      <span>Volver a Certificados</span>
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Main Upload Column -->
+  <div class="col-lg-8">
+    <div class="card p-4 p-md-5 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <h5 class="fw-bold text-dark mb-3">Información del Certificado</h5>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 small rounded-3 mb-3">
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark" for="{{ form.name.id_for_label }}">Nombre del Perfil de Firma</label>
+          {{ form.name }}
+          <div class="form-text text-muted small">Ejemplo: Certificado Personal, Representante Legal, Facturación, etc.</div>
+          {% if form.name.errors %}
+            <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark" for="{{ form.certificate_file.id_for_label }}">Archivo de Certificado (.p12 / .pfx)</label>
+          {{ form.certificate_file }}
+          <div class="form-text text-muted small">Debe contener la clave privada y la cadena de certificados en formato PKCS#12.</div>
+          {% if form.certificate_file.errors %}
+            <div class="text-danger small mt-1">{{ form.certificate_file.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark" for="{{ form.password.id_for_label }}">Contraseña actual del certificado</label>
+          {{ form.password }}
+          <div class="form-text text-muted small">
+            Se requiere ahora únicamente para validar el archivo y extraer sus metadatos públicos (emisor, vigencia, titular).
+          </div>
+          {% if form.password.errors %}
+            <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="p-3 bg-light rounded-3 border mb-4 d-flex align-items-start gap-3">
+          <i class="bi bi-lock-fill text-dark fs-5 mt-1"></i>
+          <div class="small text-muted">
+            <strong class="text-dark d-block mb-1">Privacidad Absoluta de Contraseña</strong>
+            Tu contraseña <strong>nunca se guarda en el servidor ni en la base de datos</strong>. Se te solicitará en cada operación de firma para garantizar la máxima seguridad.
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
+          <a href="{% url 'certificates:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+          <button type="submit" class="btn btn-primary d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock"></i>
+            <span>Cifrar y Guardar Certificado</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Helpful Side Guide Column -->
+  <div class="col-lg-4">
+    <div class="card p-4 border-0 shadow-sm mb-4" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <h6 class="fw-bold text-dark mb-3">
+        <i class="bi bi-shield-check me-2 text-dark"></i>Seguridad de la Bóveda
+      </h6>
+      <ul class="list-unstyled small text-muted mb-0 d-flex flex-column gap-3">
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-check2 text-success fs-5"></i>
+          <div>
+            <strong class="text-dark d-block">Cifrado AES en reposo</strong>
+            El archivo de clave privada queda cifrado mediante AES con una llave única externa fuera de la base de datos.
+          </div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-check2 text-success fs-5"></i>
+          <div>
+            <strong class="text-dark d-block">Aislamiento por usuario</strong>
+            Ningún otro usuario o espacio de trabajo puede acceder ni visualizar tus certificados.
+          </div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-check2 text-success fs-5"></i>
+          <div>
+            <strong class="text-dark d-block">Control de caducidad</strong>
+            El sistema monitorea la fecha de expiración para avisarte oportunamente si tu certificado vence.
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

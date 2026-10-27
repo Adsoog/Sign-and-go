@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Generar Certificado de Prueba — Sign &amp; Go{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold text-dark mb-1">Generar Certificado de Prueba</h3>
+    <p class="text-muted small mb-0">Crea una identidad digital de prueba con algoritmo RSA de 2048 bits para comenzar a firmar al instante.</p>
+  </div>
+  <div>
+    <a href="{% url 'certificates:list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+      <i class="bi bi-arrow-left"></i>
+      <span>Volver a Certificados</span>
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Main Form Column -->
+  <div class="col-lg-8">
+    <div class="card p-4 p-md-5 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <h5 class="fw-bold text-dark mb-3">Parámetros de la Identidad</h5>
+
+      <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 small rounded-3 mb-3">
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark">Nombre del Perfil de Firma</label>
+          {{ form.name }}
+          <div class="form-text text-muted small">Nombre identificativo en tu panel (ej: Prueba Firma Personal).</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark">Nombre del Titular (Common Name)</label>
+          {{ form.common_name }}
+          <div class="form-text text-muted small">Nombre y apellidos que figurarán como firmante oficial.</div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-8">
+            <label class="form-label small fw-semibold text-dark">Organización o Empresa</label>
+            {{ form.organization }}
+          </div>
+          <div class="col-4">
+            <label class="form-label small fw-semibold text-dark">Código País</label>
+            {{ form.country }}
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark">Contraseña para el certificado</label>
+          {{ form.password }}
+          <div class="form-text text-muted small">
+            Define una contraseña para este certificado. Te será solicitada cada vez que realices una firma.
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark">Días de Validez</label>
+          {{ form.valid_days }}
+        </div>
+
+        <div class="d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
+          <a href="{% url 'certificates:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+          <button type="submit" class="btn btn-primary d-flex align-items-center gap-2">
+            <i class="bi bi-cpu"></i>
+            <span>Generar y Cifrar en Bóveda</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Helpful Side Guide Column -->
+  <div class="col-lg-4">
+    <div class="card p-4 border-0 shadow-sm mb-4" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <h6 class="fw-bold text-dark mb-3">
+        <i class="bi bi-lightbulb me-2 text-dark"></i>Certificados de Prueba
+      </h6>
+      <p class="small text-muted mb-3">
+        Esta utilidad genera un par de claves criptográficas seguras (RSA-2048) y las empaqueta en formato estándar PKCS#12 (.p12).
+      </p>
+      <div class="p-3 bg-light rounded-3 border small text-muted">
+        <strong class="text-dark d-block mb-1">Para entornos de producción</strong>
+        Para contratos mercantiles o trámites oficiales con administraciones públicas, se recomienda subir certificados emitidos por Autoridades de Certificación reconocidas (FNMT, Camerfirma, etc.).
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

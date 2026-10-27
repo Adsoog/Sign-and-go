@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Panel Principal — Sign &amp; Go{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h3 class="fw-bold text-dark mb-1">Panel de Control</h3>
+    <p class="text-muted small mb-0">Gestión de documentos, certificados y firmas digitales criptográficas</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'documents:upload' %}" class="btn btn-primary d-flex align-items-center gap-2">
+      <i class="bi bi-cloud-arrow-up"></i>
+      <span>Subir Documento</span>
+    </a>
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-muted small fw-medium">Total Documentos</span>
+          <h3 class="fw-bold mb-0 mt-1">{{ total_docs }}</h3>
+        </div>
+        <div class="rounded-3 bg-light p-3 text-dark fs-4">
+          <i class="bi bi-files"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-muted small fw-medium">Firmados Digitalmente</span>
+          <h3 class="fw-bold mb-0 mt-1 text-success">{{ signed_docs }}</h3>
+        </div>
+        <div class="rounded-3 bg-light p-3 text-success fs-4">
+          <i class="bi bi-patch-check-fill"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-muted small fw-medium">Pendientes de Firma</span>
+          <h3 class="fw-bold mb-0 mt-1 text-warning">{{ pending_docs }}</h3>
+        </div>
+        <div class="rounded-3 bg-light p-3 text-warning fs-4">
+          <i class="bi bi-hourglass-split"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-muted small fw-medium">Certificados en Bóveda</span>
+          <h3 class="fw-bold mb-0 mt-1 text-dark">{{ active_certs }}</h3>
+        </div>
+        <div class="rounded-3 bg-light p-3 text-dark fs-4">
+          <i class="bi bi-safe2"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content Row -->
+<div class="row g-4">
+  <!-- Recent Documents -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center py-3">
+        <span class="fw-semibold"><i class="bi bi-file-earmark-text me-2"></i>Documentos Recientes</span>
+        <a href="{% url 'documents:list' %}" class="small text-decoration-none">Ver todos <i class="bi bi-arrow-right"></i></a>
+      </div>
+      <div class="card-body p-0">
+        {% if recent_documents %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.03em;">
+              <tr>
+                <th class="ps-3 py-3">Título</th>
+                <th class="py-3">Archivo Original</th>
+                <th class="py-3 text-center">Págs</th>
+                <th class="py-3">Estado</th>
+                <th class="py-3">Fecha</th>
+                <th class="text-end pe-3 py-3">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="small">
+              {% for doc in recent_documents %}
+              <tr>
+                <!-- Columna 1: Título -->
+                <td class="ps-3 fw-semibold text-dark">
+                  <a href="{% url 'documents:detail' doc.id %}" class="text-dark text-decoration-none">
+                    {{ doc.title }}
+                  </a>
+                </td>
+
+                <!-- Columna 2: Archivo original -->
+                <td class="text-muted text-truncate" style="max-width: 200px;" title="{{ doc.original_filename }}">
+                  <i class="bi bi-file-earmark-pdf text-danger me-1"></i>{{ doc.original_filename }}
+                </td>
+
+                <!-- Columna 3: Páginas -->
+                <td class="text-center">
+                  <span class="badge bg-light text-dark border">{{ doc.page_count }}</span>
+                </td>
+
+                <!-- Columna 4: Estado -->
+                <td>
+                  {% if doc.status == 'signed' %}
+                    <span class="badge badge-subtle-success px-2 py-1"><i class="bi bi-check-circle me-1"></i>Firmado</span>
+                  {% elif doc.status == 'uploaded' %}
+                    <span class="badge badge-subtle-warning px-2 py-1"><i class="bi bi-clock me-1"></i>Sin firmar</span>
+                  {% else %}
+                    <span class="badge badge-subtle-secondary px-2 py-1">{{ doc.get_status_display }}</span>
+                  {% endif %}
+                </td>
+
+                <!-- Columna 5: Fecha -->
+                <td class="text-muted text-nowrap">{{ doc.created_at|date:"d/m/Y H:i" }}</td>
+
+                <!-- Columna 6: Acciones limpias y alineadas -->
+                <td class="text-end pe-3">
+                  <div class="table-actions">
+                    {% if not doc.is_signed %}
+                      <a href="{% url 'signing:editor' doc.id %}" class="btn-action btn btn-sm btn-primary" title="Firmar Documento">
+                        <i class="bi bi-pen"></i>
+                        <span>Firmar</span>
+                      </a>
+                    {% else %}
+                      <a href="{% url 'documents:download' doc.id 'signed' %}" class="btn-icon btn-icon-success" title="Descargar PDF">
+                        <i class="bi bi-download"></i>
+                      </a>
+                    {% endif %}
+                    <a href="{% url 'documents:detail' doc.id %}" class="btn-icon" title="Ver Detalle">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-cloud-upload text-muted fs-1 mb-2"></i>
+          <p class="text-muted mb-3">Aún no has subido ningún documento a tu espacio.</p>
+          <a href="{% url 'documents:upload' %}" class="btn btn-sm btn-primary">Subir mi primer documento</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity / Events Feed -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header py-3">
+        <span class="fw-semibold"><i class="bi bi-activity me-2"></i>Última Actividad y Seguimiento</span>
+      </div>
+      <div class="card-body">
+        {% if recent_events %}
+        <div class="timeline">
+          {% for ev in recent_events %}
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="small fw-semibold text-dark">{{ ev.get_event_type_display }}</div>
+            <div class="small text-muted">{{ ev.document.title|truncatechars:28 }}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">
+              {{ ev.occurred_at|date:"d M, H:i" }} · IP: {{ ev.ip_anonymized }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted small">
+          <i class="bi bi-bar-chart-line fs-3 d-block mb-2"></i>
+          No hay eventos registrados recientemente.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

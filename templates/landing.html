@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign &amp; Go — Plataforma Criptográfica de Firma y Trazabilidad PDF</title>
+  <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
+  
+  <!-- Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5.3 CSS & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- Sign & Go Base CSS -->
+  <link rel="stylesheet" href="/static/css/signbox.css">
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
+
+  <style>
+    :root {
+      --canvas-dot: #cbd5e1;
+      --canvas-bg: #f8fafc;
+      --brand-navy: #0F172A;
+      --brand-blue: #0284C7;
+      --brand-indigo: #4F46E5;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background-color: #ffffff;
+      color: #0F172A;
+      overflow-x: hidden;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Minimalist Glass Navbar */
+    .glass-header {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    /* Miro / Canvas Board Grid */
+    .miro-canvas {
+      background-color: var(--canvas-bg);
+      background-image: radial-gradient(rgba(148, 163, 184, 0.35) 1.2px, transparent 1.2px);
+      background-size: 24px 24px;
+      position: relative;
+    }
+
+    /* Realistic Paper Document on Canvas */
+    .canvas-document {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.04);
+      position: relative;
+      user-select: none;
+    }
+
+    /* Miro Collaborative Tag Cursor */
+    .miro-cursor-tag {
+      position: absolute;
+      padding: 3px 10px;
+      background: #4F46E5;
+      color: #ffffff;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+      z-index: 20;
+    }
+
+    /* Interactive Live Signature Stamp on Canvas */
+    .canvas-stamp {
+      border: 1.5px dashed #0284C7;
+      background: rgba(2, 132, 199, 0.08);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .canvas-stamp.signed {
+      border: 1.5px solid #10B981;
+      background: #F0FDF4;
+    }
+
+    /* Node Cards in Miro Workflow */
+    .flow-node {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 1.25rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      height: 100%;
+      position: relative;
+    }
+    .flow-node:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 20px -4px rgba(15, 23, 42, 0.08);
+      border-color: #cbd5e1;
+    }
+    .flow-node-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: #F1F5F9;
+      color: #0F172A;
+      font-weight: 700;
+      font-size: 0.8125rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Curved Line Connectors */
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 1.25rem;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Minimalist Glass Navbar -->
+  <header class="glass-header py-3">
+    <div class="container d-flex align-items-center justify-content-between">
+      <!-- Logo con icono de firma artesanal -->
+      <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
+        {% include "includes/brand_icon.html" %}
+        <span class="fw-bold fs-5 text-dark" style="letter-spacing: -0.03em;">Sign &amp; Go</span>
+      </a>
+
+      <!-- Botones minimalistas a la derecha -->
+      <div class="d-flex align-items-center gap-3">
+        <a href="{% url 'accounts:login' %}" class="text-decoration-none small text-dark fw-semibold">
+          Iniciar Sesión
+        </a>
+        <a href="{% url 'accounts:register' %}" class="btn btn-sm btn-dark px-3 py-1 rounded-pill fw-medium" style="background-color: #0F172A; font-size: 0.85rem;">
+          Comenzar
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section with Canvas Board -->
+  <section class="miro-canvas pt-5 pb-5 border-bottom">
+    <div class="container py-4">
+      <div class="row justify-content-center text-center mb-5">
+        <div class="col-lg-8">
+          
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 bg-white border rounded-pill shadow-sm mb-3">
+            <span class="d-inline-block rounded-circle" style="width: 8px; height: 8px; background-color: #10B981;"></span>
+            <span class="small fw-semibold text-dark" style="font-size: 0.8125rem;">Gestión Documental &bull; Firma Confiable &bull; Trazabilidad</span>
+          </div>
+
+          <h1 class="fw-extrabold text-dark display-5 mb-3" style="letter-spacing: -0.035em; line-height: 1.15;">
+            Lleva el control de tus documentos,<br>
+            <span class="text-primary" style="background: linear-gradient(135deg, #0284C7, #2563EB); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">fírmalos y sigue cada evento en tiempo real.</span>
+          </h1>
+
+          <p class="text-muted fs-6 mb-4 px-md-4" style="line-height: 1.65; max-width: 680px; margin: 0 auto;">
+            Sign &amp; Go es la plataforma integral para llevar el control de tus documentos, firmarlos con total seguridad y tener trazabilidad exacta de cuándo se visualizaron y cuándo se descargaron. Consulta la integridad de cada archivo en cualquier momento y ten siempre disponible una manera fácil, ágil y confiable de firmar tus documentos.
+          </p>
+
+          <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="{% url 'accounts:register' %}" class="btn btn-dark px-4 py-2 rounded-pill fw-medium d-flex align-items-center gap-2" style="background-color: #0F172A;">
+              <span>Crear Cuenta Gratis</span>
+              <i class="bi bi-arrow-right"></i>
+            </a>
+            <a href="{% url 'accounts:login' %}" class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-medium d-flex align-items-center gap-2 bg-white">
+              <span>Acceder a mi Cuenta</span>
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Live Interactive Document Showcase (Miro / Desk Canvas) -->
+      <div class="row justify-content-center" id="simulador" x-data="{ signed: false, hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', isProcessing: false }">
+        <div class="col-lg-9 col-xl-8">
+          
+          <!-- Outer Canvas Desk -->
+          <div class="p-3 p-md-4 bg-slate-900 rounded-4 shadow-lg position-relative" style="background: #0B0F19; border: 1px solid rgba(255, 255, 255, 0.08);">
+            
+            <!-- Canvas Window Header -->
+            <div class="d-flex align-items-center justify-content-between pb-3 border-bottom border-secondary border-opacity-25 mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <span class="rounded-circle" style="width: 10px; height: 10px; background: #EF4444;"></span>
+                <span class="rounded-circle" style="width: 10px; height: 10px; background: #F59E0B;"></span>
+                <span class="rounded-circle" style="width: 10px; height: 10px; background: #10B981;"></span>
+                <span class="text-secondary small font-mono ms-2" style="font-size: 0.75rem;">mesa_de_firma_padres.pdf</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-secondary bg-opacity-25 text-light font-mono" style="font-size: 0.7rem;">Pág. 1 / 1</span>
+              </div>
+            </div>
+
+            <!-- Simulated Document Sheet -->
+            <div class="canvas-document p-4 p-md-5">
+              
+              <!-- Miro Cursor Tag -->
+              <div class="miro-cursor-tag" style="top: 15px; right: 25px;">
+                <i class="bi bi-cursor-fill" style="transform: rotate(-45deg); font-size: 0.6rem;"></i>
+                <span>Carlos R. &bull; Certificado FNMT</span>
+              </div>
+
+              <!-- Header of document -->
+              <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+                <div>
+                  <div class="fw-bold fs-5 text-dark" style="letter-spacing: -0.02em;">ACUERDO MARCO DE PRESTACIÓN DE SERVICIOS</div>
+                  <div class="text-muted small">Referencia: SG-2026-CONTRATO-088</div>
+                </div>
+                <div class="text-end small text-muted font-mono">
+                  OCTUBRE 2026
+                </div>
+              </div>
+
+              <!-- Simulated text lines -->
+              <div class="mb-4">
+                <p class="small text-muted mb-2">
+                  Por el presente documento, las partes contratantes formalizan los términos y condiciones de custodia documental y trazabilidad criptográfica. La autenticidad del contenido queda garantizada mediante el cálculo de resumen digital SHA-256 y sellado PAdES.
+                </p>
+                <div class="d-flex flex-column gap-2 mb-3">
+                  <div style="height: 6px; background: #f1f5f9; border-radius: 4px; width: 95%;"></div>
+                  <div style="height: 6px; background: #f1f5f9; border-radius: 4px; width: 88%;"></div>
+                  <div style="height: 6px; background: #f1f5f9; border-radius: 4px; width: 92%;"></div>
+                </div>
+              </div>
+
+              <!-- Interactive Signature Box on Paper -->
+              <div class="canvas-stamp" :class="{ 'signed': signed }">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="p-2 rounded-2" :class="signed ? 'bg-success text-white' : 'bg-primary text-white'" style="font-size: 1.1rem;">
+                    <i :class="signed ? 'bi bi-check2-circle' : 'bi bi-pen'"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold small text-dark">
+                      <span x-text="signed ? 'DOCUMENTO FIRMADO Y VERIFICADO' : 'UBICACIÓN DE TU FIRMA'"></span>
+                    </div>
+                    <div class="text-muted font-mono" style="font-size: 0.7rem;">
+                      <span x-show="!signed">Arrastra o coloca en la posición deseada</span>
+                      <span x-show="signed" class="text-success fw-semibold">Firma digital aplicada &bull; Certificado verificado</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Button in Demo -->
+                <div>
+                  <button type="button" 
+                          @click="if(!signed) { isProcessing = true; setTimeout(() => { isProcessing = false; signed = true; hash = '4a8b79f2910c8e23f81e89320b9e8172c72b8109d98a234f981274'; }, 800) } else { signed = false; }"
+                          class="btn btn-sm rounded-pill px-3"
+                          :class="signed ? 'btn-outline-secondary' : 'btn-primary'">
+                    <span x-show="isProcessing"><i class="spinner-border spinner-border-sm me-1"></i> Firmando...</span>
+                    <span x-show="!isProcessing && !signed"><i class="bi bi-pen me-1"></i> Firmar Documento</span>
+                    <span x-show="!isProcessing && signed"><i class="bi bi-arrow-counterclockwise me-1"></i> Reiniciar</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Resulting Inmutable Hash Banner -->
+              <div x-show="signed" x-transition class="mt-3 p-3 bg-light rounded-3 border small">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <span class="text-muted fw-semibold" style="font-size: 0.72rem;">ESTADO DEL DOCUMENTO:</span>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle font-mono">AUTÉNTICO &bull; SIN MODIFICACIONES</span>
+                </div>
+                <div class="font-mono text-break text-muted" style="font-size: 0.75rem;" x-text="'Huella digital: ' + hash"></div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Flujo de Trabajo en 4 Pasos Sencillos -->
+  <section id="como-funciona" class="py-5 bg-white">
+    <div class="container py-4">
+      <div class="text-center mb-5">
+        <span class="badge bg-light text-secondary border px-3 py-1 rounded-pill mb-2 fw-semibold" style="font-size: 0.75rem;">PASO A PASO</span>
+        <h2 class="fw-bold text-dark" style="letter-spacing: -0.025em;">Firma y gestiona tus documentos en 4 pasos simples</h2>
+        <p class="text-muted small">Una experiencia ágil y directa para ti, tu equipo y tus clientes.</p>
+      </div>
+
+      <div class="row g-4 align-items-stretch justify-content-center">
+        <!-- Paso 1 -->
+        <div class="col-md-6 col-lg-3">
+          <div class="flow-node">
+            <div class="flow-node-badge">01</div>
+            <h6 class="fw-bold text-dark mb-2">Sube tus Documentos</h6>
+            <p class="text-muted small mb-0">Carga cualquier archivo o contrato PDF desde tu ordenador a tu espacio privado y seguro.</p>
+          </div>
+        </div>
+
+        <!-- Paso 2 -->
+        <div class="col-md-6 col-lg-3">
+          <div class="flow-node">
+            <div class="flow-node-badge">02</div>
+            <h6 class="fw-bold text-dark mb-2">Conecta tus Certificados</h6>
+            <p class="text-muted small mb-0">Guarda tus certificados digitales personales o corporativos para tenerlos listos en cualquier momento.</p>
+          </div>
+        </div>
+
+        <!-- Paso 3 -->
+        <div class="col-md-6 col-lg-3">
+          <div class="flow-node">
+            <div class="flow-node-badge">03</div>
+            <h6 class="fw-bold text-dark mb-2">Firma con un Clic</h6>
+            <p class="text-muted small mb-0">Ubica visualmente el sello en la página que desees y estampa tu firma con validez y seguridad total.</p>
+          </div>
+        </div>
+
+        <!-- Paso 4 -->
+        <div class="col-md-6 col-lg-3">
+          <div class="flow-node">
+            <div class="flow-node-badge">04</div>
+            <h6 class="fw-bold text-dark mb-2">Comparte y Monitorea</h6>
+            <p class="text-muted small mb-0">Genera enlaces y códigos QR para saber en tiempo real cuándo lo abren, cuándo lo descargan y verificar su autenticidad.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA de Cierre -->
+  <section class="py-5 text-center bg-light border-top">
+    <div class="container py-4">
+      <div class="row justify-content-center">
+        <div class="col-lg-6">
+          <h3 class="fw-bold text-dark mb-2" style="letter-spacing: -0.025em;">Comienza a gestionar y firmar tus documentos</h3>
+          <p class="text-muted small mb-4">Lleva el control de todos tus archivos, fírmalos en segundos y mantén la trazabilidad de cada apertura.</p>
+          <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'accounts:register' %}" class="btn btn-dark px-4 py-2 rounded-pill fw-medium" style="background-color: #0F172A;">
+              Crear Cuenta Gratis
+            </a>
+            <a href="{% url 'accounts:login' %}" class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-medium bg-white">
+              Iniciar Sesión
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer Elegante -->
+  <footer class="py-4 border-top bg-white text-center small text-muted">
+    <div class="container">
+      <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+        {% include "includes/brand_icon.html" %}
+        <strong class="text-dark">Sign &amp; Go</strong>
+      </div>
+      <p class="mb-1 text-muted">Plataforma integral para gestión documental, firma digital y trazabilidad de eventos.</p>
+      <span style="font-size: 0.75rem;">&copy; 2026 Sign &amp; Go &bull; Todos los derechos reservados.</span>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

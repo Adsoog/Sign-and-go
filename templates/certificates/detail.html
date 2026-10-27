@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Certificado: {{ cert.name }} — Sign &amp; Go{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h3 class="fw-bold text-dark mb-1">{{ cert.name }}</h3>
+    <span class="badge {% if cert.is_active %}badge-subtle-success{% else %}badge-subtle-secondary{% endif %}">
+      {% if cert.is_active %}Perfil Activo{% else %}Inactivo{% endif %}
+    </span>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'certificates:list' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Volver a la lista
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card mb-4">
+      <div class="card-header">
+        <span class="fw-semibold"><i class="bi bi-shield-check me-2"></i>Metadatos Públicos del Certificado</span>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4 text-muted small">Titular</dt>
+          <dd class="col-sm-8 small fw-semibold text-dark">{{ cert.clean_subject_name }}</dd>
+
+          {% if cert.organization_name %}
+          <dt class="col-sm-4 text-muted small">Organización / Empresa</dt>
+          <dd class="col-sm-8 small text-dark">{{ cert.organization_name }}</dd>
+          {% endif %}
+
+          {% if cert.country_code %}
+          <dt class="col-sm-4 text-muted small">País</dt>
+          <dd class="col-sm-8 small text-dark">{{ cert.country_code }}</dd>
+          {% endif %}
+
+          <dt class="col-sm-4 text-muted small">Emisor</dt>
+          <dd class="col-sm-8 small fw-medium text-dark">{{ cert.issuer_name }}</dd>
+
+          <dt class="col-sm-4 text-muted small">Número de Serie</dt>
+          <dd class="col-sm-8 small font-monospace">{{ cert.serial_number }}</dd>
+
+          <dt class="col-sm-4 text-muted small">Huella Digital (SHA-256)</dt>
+          <dd class="col-sm-8 small font-monospace text-break">{{ cert.fingerprint_sha256 }}</dd>
+
+          <dt class="col-sm-4 text-muted small">Válido Desde</dt>
+          <dd class="col-sm-8 small">{{ cert.valid_from|date:"d/m/Y H:i:s" }} UTC</dd>
+
+          <dt class="col-sm-4 text-muted small">Válido Hasta</dt>
+          <dd class="col-sm-8 small">
+            {{ cert.valid_until|date:"d/m/Y H:i:s" }} UTC
+            {% if cert.is_expired %}
+              <span class="badge badge-subtle-danger ms-2">Caducado</span>
+            {% else %}
+              <span class="badge badge-subtle-success ms-2">{{ cert.days_until_expiration }} días restantes</span>
+            {% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card mb-4">
+      <div class="card-header">
+        <span class="fw-semibold"><i class="bi bi-lock me-2"></i>Seguridad de Bóveda</span>
+      </div>
+      <div class="card-body small">
+        <div class="mb-3">
+          <span class="text-muted d-block">Estado de Cifrado</span>
+          <span class="badge badge-subtle-primary"><i class="bi bi-shield-lock me-1"></i>Cifrado Fernet/AES ({{ cert.encryption_key_version }})</span>
+        </div>
+        <div class="mb-3">
+          <span class="text-muted d-block">Último uso para firma</span>
+          <strong>{{ cert.last_used_at|date:"d/m/Y H:i"|default:"Nunca utilizado" }}</strong>
+        </div>
+        <div class="mb-3">
+          <span class="text-muted d-block">Fecha de alta en bóveda</span>
+          <span>{{ cert.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+
+        <hr>
+
+        <form method="post" action="{% url 'certificates:toggle' cert.id %}" class="d-grid mb-2">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-power me-1"></i> {% if cert.is_active %}Desactivar temporalmente{% else %}Activar certificado{% endif %}
+          </button>
+        </form>
+
+        <a href="{% url 'certificates:delete' cert.id %}" class="btn btn-outline-danger btn-sm d-block text-center">
+          <i class="bi bi-trash me-1"></i> Eliminar de la bóveda
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

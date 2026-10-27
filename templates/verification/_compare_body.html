@@ -1,0 +1,200 @@
+<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold text-dark mb-1">Comparador y Verificador de PDF</h3>
+    <p class="text-muted small mb-0">Comprueba si un PDF recibido coincide con el original archivado y valida sus firmas digitales.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Main Analysis Column -->
+  <div class="col-lg-8">
+    <!-- Upload Form Card -->
+    <div class="card p-4 p-md-5 mb-4 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <h5 class="fw-bold text-dark mb-3">Analizar Archivo PDF</h5>
+      
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark">Seleccionar archivo PDF para inspeccionar</label>
+          <input type="file" name="pdf_file" class="form-control" accept=".pdf" required>
+          <div class="form-text text-muted small">Sube el documento que deseas verificar. El sistema calculará su huella SHA-256 y analizará sus firmas embebidas.</div>
+        </div>
+
+        {% if user_docs %}
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark">Comparar específicamente contra un documento de tu bóveda (Opcional)</label>
+          <select name="reference_doc_id" class="form-select">
+            <option value="">-- Detección automática por huella digital SHA-256 --</option>
+            {% for d in user_docs %}
+              <option value="{{ d.id }}">{{ d.title }} ({{ d.signed_sha256|truncatechars:20 }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-end pt-2 border-top">
+          <button type="submit" class="btn btn-primary d-flex align-items-center gap-2">
+            <i class="bi bi-search"></i>
+            <span>Analizar y Validar Documento</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Results Report -->
+    {% if report %}
+    <div class="card border-0 shadow-sm mb-4" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
+        <h5 class="fw-bold text-dark mb-0">Informe de Autenticidad</h5>
+        <span class="badge bg-{{ report.verdict_badge_class }}-subtle text-{{ report.verdict_badge_class }} border border-{{ report.verdict_badge_class }}-subtle px-3 py-2 rounded-pill">
+          {{ report.verdict_title }}
+        </span>
+      </div>
+
+      <div class="card-body p-4 p-md-5">
+        <div class="alert alert-{{ report.verdict_badge_class }} d-flex align-items-start gap-3 mb-4 rounded-3">
+          <i class="bi bi-info-circle-fill fs-4 mt-1"></i>
+          <div>
+            <div class="fw-bold">{{ report.verdict_title }}</div>
+            <div class="small">{{ report.verdict_description }}</div>
+          </div>
+        </div>
+
+        <!-- Hash Breakdown -->
+        <div class="p-3 bg-light rounded-3 mb-4 border">
+          <div class="row g-3 small">
+            <div class="col-md-6">
+              <span class="text-muted d-block">Huella SHA-256 del archivo subido:</span>
+              <span class="font-monospace fw-semibold text-dark text-break">{{ report.uploaded_sha256 }}</span>
+            </div>
+            <div class="col-md-6">
+              <span class="text-muted d-block">Documento de referencia en bóveda:</span>
+              {% if report.matched_document %}
+                <span class="fw-semibold text-dark">{{ report.matched_document.title }}</span>
+                <span class="d-block font-monospace text-muted text-break">{{ report.matched_document.signed_sha256 }}</span>
+              {% else %}
+                <span class="text-muted fst-italic">No se encontró coincidencia en la base de datos</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Checklist -->
+        <h6 class="fw-semibold text-dark mb-3"><i class="bi bi-list-check me-2"></i>Comprobaciones de Seguridad:</h6>
+        <div class="list-group mb-4 small rounded-3">
+          <!-- Exact Hash Match -->
+          <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+            <div>
+              <strong>Coincidencia de huella (Byte a Byte):</strong>
+              <div class="text-muted">Comprobación exacta de la huella digital SHA-256 contra el registro original.</div>
+            </div>
+            {% if report.exact_hash_match %}
+              <span class="badge badge-subtle-success fs-6"><i class="bi bi-check-lg me-1"></i>Coincide</span>
+            {% else %}
+              <span class="badge badge-subtle-secondary fs-6"><i class="bi bi-x-lg me-1"></i>No coincide</span>
+            {% endif %}
+          </div>
+
+          <!-- Cryptographic Signatures Presence -->
+          <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+            <div>
+              <strong>Detección de firmas digitales:</strong>
+              <div class="text-muted">Estructuras criptográficas integradas en el documento PDF.</div>
+            </div>
+            {% if report.has_signatures %}
+              <span class="badge badge-subtle-success fs-6"><i class="bi bi-check-lg me-1"></i>Detectadas ({{ report.signatures|length }})</span>
+            {% else %}
+              <span class="badge badge-subtle-warning fs-6"><i class="bi bi-dash-lg me-1"></i>Sin firmas</span>
+            {% endif %}
+          </div>
+
+          <!-- Mathematical validity -->
+          <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+            <div>
+              <strong>Validez de la firma digital:</strong>
+              <div class="text-muted">Cálculo de firma verificado matemáticamente.</div>
+            </div>
+            {% if report.signatures_valid %}
+              <span class="badge badge-subtle-success fs-6"><i class="bi bi-check-lg me-1"></i>Válida</span>
+            {% elif report.has_signatures %}
+              <span class="badge badge-subtle-danger fs-6"><i class="bi bi-x-lg me-1"></i>Inválida</span>
+            {% else %}
+              <span class="badge badge-subtle-secondary fs-6">N/A</span>
+            {% endif %}
+          </div>
+
+          <!-- Integrity intact -->
+          <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+            <div>
+              <strong>Integridad del documento desde su firma:</strong>
+              <div class="text-muted">Comprueba que el contenido no haya sufrido modificaciones no autorizadas posteriores.</div>
+            </div>
+            {% if report.signatures_intact %}
+              <span class="badge badge-subtle-success fs-6"><i class="bi bi-check-lg me-1"></i>Intacta</span>
+            {% elif report.has_signatures %}
+              <span class="badge badge-subtle-danger fs-6"><i class="bi bi-exclamation-triangle me-1"></i>Modificado</span>
+            {% else %}
+              <span class="badge badge-subtle-secondary fs-6">N/A</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Signature Details Breakdown -->
+        {% if report.signatures %}
+        <h6 class="fw-semibold text-dark mb-3"><i class="bi bi-shield-shaded me-2"></i>Detalle de Firmantes</h6>
+        {% for sig in report.signatures %}
+        <div class="card p-3 mb-2 bg-light border small">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold text-dark">{{ sig.field_name }}</span>
+            <span class="badge {% if sig.valid and sig.intact %}badge-subtle-success{% else %}badge-subtle-danger{% endif %}">
+              {% if sig.valid and sig.intact %}Firma Íntegra{% else %}Firma Comprometida{% endif %}
+            </span>
+          </div>
+          <div class="text-muted mb-1">Firmante: <strong class="text-dark">{{ sig.signer_name }}</strong></div>
+          {% if sig.signing_time %}
+            <div class="text-muted mb-1">Fecha de sellado: {{ sig.signing_time }}</div>
+          {% endif %}
+          <div class="text-muted font-monospace small mt-1">{{ sig.summary }}</div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Helpful Side Guide Column -->
+  <div class="col-lg-4">
+    <div class="card p-4 border-0 shadow-sm mb-4" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <h6 class="fw-bold text-dark mb-3">
+        <i class="bi bi-patch-check me-2 text-dark"></i>Criterios de Verificación
+      </h6>
+      <ul class="list-unstyled small text-muted mb-0 d-flex flex-column gap-3">
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-check-circle text-success fs-5"></i>
+          <div>
+            <strong class="text-dark d-block">Auténtico y Original</strong>
+            Si la huella coincide exactamente con un documento de la bóveda, garantiza que es 100% idéntico.
+          </div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-exclamation-triangle text-warning fs-5"></i>
+          <div>
+            <strong class="text-dark d-block">Alteraciones detectadas</strong>
+            Si un solo carácter o píxel fue editado tras la firma, el sistema marcará inmediatamente la firma como rota.
+          </div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-shield-lock text-dark fs-5"></i>
+          <div>
+            <strong class="text-dark d-block">Inspección de firmas externas</strong>
+            También puedes subir PDFs firmados por terceros para validar la autenticidad de sus certificados.
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

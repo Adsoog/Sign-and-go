@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Crear cuenta — Sign &amp; Go{% endblock %}
+
+{% block public_content %}
+<div class="row justify-content-center align-items-center min-vh-75 py-5">
+  <div class="col-11 col-sm-8 col-md-6 col-lg-5">
+    
+    <!-- Brand Header -->
+    <div class="text-center mb-4">
+      <div class="d-inline-flex justify-content-center mb-3">
+        {% include "includes/brand_icon.html" %}
+      </div>
+      <h2 class="fw-bold text-dark mb-1" style="letter-spacing: -0.03em;">Sign &amp; Go</h2>
+      <p class="text-muted small">Crea tu espacio privado para gestión documental y firma</p>
+    </div>
+
+    <!-- Registration Card -->
+    <div class="card p-4 p-md-5 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
+      <h4 class="fw-bold text-dark mb-1" style="letter-spacing: -0.02em;">Crear Cuenta</h4>
+      <p class="text-muted small mb-4">Comienza a organizar, firmar y trazar tus documentos</p>
+      
+      <form method="post" novalidate>
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 small rounded-3">
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-dark" for="{{ form.email.id_for_label }}">Correo electrónico</label>
+          {{ form.email }}
+          {% if form.email.errors %}
+            <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-dark" for="{{ form.full_name.id_for_label }}">Nombre o Razón Social</label>
+          {{ form.full_name }}
+          {% if form.full_name.errors %}
+            <div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-dark" for="{{ form.password.id_for_label }}">Contraseña</label>
+          {{ form.password }}
+          {% if form.password.errors %}
+            <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-dark" for="{{ form.password_confirm.id_for_label }}">Confirmar contraseña</label>
+          {{ form.password_confirm }}
+          {% if form.password_confirm.errors %}
+            <div class="text-danger small mt-1">{{ form.password_confirm.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-dark w-100 py-2 mb-3 fw-medium rounded-pill" style="background-color: #0F172A; font-size: 0.925rem;">
+          Crear mi Espacio de Trabajo
+        </button>
+
+        <div class="text-center small text-muted pt-2">
+          ¿Ya tienes cuenta? 
+          <a href="{% url 'accounts:login' %}" class="text-decoration-none fw-semibold text-primary">Iniciar sesión</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="/" class="small text-muted text-decoration-none">
+        <i class="bi bi-arrow-left me-1"></i> Volver a la página principal
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
