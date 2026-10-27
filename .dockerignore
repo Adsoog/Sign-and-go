@@ -1,0 +1,28 @@
+# Git & IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Python & Environment
+__pycache__
+*.py[cod]
+*$py.class
+.venv
+venv
+env
+ENV
+.pytest_cache
+.coverage
+htmlcov
+
+# Local secrets & data
+.env
+.env.local
+db.sqlite3
+db.sqlite3-journal
+private_storage/documents/*
+!private_storage/documents/.gitkeep
+private_storage/certificates/*
+!private_storage/certificates/.gitkeep
+media/

@@ -108,15 +108,15 @@ def create_signature_stamp_overlay(
     c = canvas.Canvas(packet, pagesize=(page_width, page_height))
     c.saveState()
 
-    # 1. Clean, crisp white card background with subtle dark slate border
+    # 1. Clean, minimalist white card background with ultra-subtle slate border
     c.setFillColor(HexColor("#FFFFFF"))
-    c.setStrokeColor(HexColor("#0F172A"))
-    c.setLineWidth(0.8)
+    c.setStrokeColor(HexColor("#CBD5E1"))  # subtle slate-300
+    c.setLineWidth(0.6)
     c.roundRect(x1, y1, box_w, box_h, 3, fill=1, stroke=1)
 
-    # 2. Left vertical accent bar in dark navy slate
-    c.setFillColor(HexColor("#0F172A"))
-    c.roundRect(x1, y1, 3.5, box_h, 1.5, fill=1, stroke=0)
+    # 2. Subtle thin vertical accent bar
+    c.setFillColor(HexColor("#94A3B8"))  # slate-400
+    c.roundRect(x1, y1, 2.5, box_h, 1, fill=1, stroke=0)
 
     # 3. Clean signer and organization data
     clean_signer, clean_org = _clean_signer_and_org(signer_name, subject)
@@ -124,14 +124,14 @@ def create_signature_stamp_overlay(
     # 4. QR code layout
     show_qr = box_w >= 120 and box_h >= 36
     if show_qr:
-        qr_size = min(box_h - 12, 60.0)
-        qr_x = x2 - qr_size - 7
+        qr_size = min(box_h - 12, 58.0)
+        qr_x = x2 - qr_size - 6
         qr_y = y1 + (box_h - qr_size) / 2
 
         # Draw subtle vertical dividing hairline
-        div_x = qr_x - 7
+        div_x = qr_x - 6
         c.setStrokeColor(HexColor("#E2E8F0"))
-        c.setLineWidth(0.5)
+        c.setLineWidth(0.4)
         c.line(div_x, y1 + 5, div_x, y2 - 5)
 
         # Draw QR code
@@ -142,61 +142,63 @@ def create_signature_stamp_overlay(
             c.drawImage(qr_img, qr_x, qr_y, width=qr_size, height=qr_size)
         except Exception:
             div_x = x2
-        text_max_w = max(10, div_x - (x1 + 10) - 4)
+        text_max_w = max(10, div_x - (x1 + 8) - 4)
     else:
-        text_max_w = max(10, box_w - 18)
+        text_max_w = max(10, box_w - 16)
 
-    # 5. Clean, proportional typography strictly fitted inside text_max_w
-    text_x = x1 + 10
+    # 5. Clean, minimalist typography strictly fitted inside text_max_w
+    text_x = x1 + 8
 
     if box_h >= 75:
         # Full layout
-        c.setFillColor(HexColor("#0F172A"))
-        c.setFont("Helvetica-Bold", 7.5)
-        c.drawString(text_x, y2 - 13, _fit_text(c, "FIRMADO DIGITALMENTE", "Helvetica-Bold", 7.5, text_max_w))
+        c.setFillColor(HexColor("#64748B"))
+        c.setFont("Helvetica-Bold", 6.8)
+        c.drawString(text_x, y2 - 13, _fit_text(c, "FIRMADO DIGITALMENTE", "Helvetica-Bold", 6.8, text_max_w))
 
-        c.setFont("Helvetica-Bold", 9.5)
-        c.drawString(text_x, y2 - 27, _fit_text(c, clean_signer, "Helvetica-Bold", 9.5, text_max_w))
+        c.setFillColor(HexColor("#0F172A"))
+        c.setFont("Helvetica-Bold", 9.0)
+        c.drawString(text_x, y2 - 26, _fit_text(c, clean_signer, "Helvetica-Bold", 9.0, text_max_w))
 
         c.setFillColor(HexColor("#475569"))
-        c.setFont("Helvetica", 6.5)
+        c.setFont("Helvetica", 6.2)
         org_label = clean_org if clean_org else "Certificado Digital Cualificado"
-        c.drawString(text_x, y2 - 39, _fit_text(c, org_label, "Helvetica", 6.5, text_max_w))
-
-        c.setFillColor(HexColor("#64748B"))
-        c.setFont("Helvetica", 6.5)
-        c.drawString(text_x, y2 - 49, _fit_text(c, f"Fecha: {signed_date_str}", "Helvetica", 6.5, text_max_w))
-
-        c.setFillColor(HexColor("#0284C7"))
-        c.setFont("Helvetica", 5.8)
-        c.drawString(text_x, y1 + 6, _fit_text(c, "Verificacion PAdES - Escanear QR", "Helvetica", 5.8, text_max_w))
-
-    elif box_h >= 50:
-        # Medium layout
-        c.setFillColor(HexColor("#0F172A"))
-        c.setFont("Helvetica-Bold", 6.5)
-        c.drawString(text_x, y2 - 11, _fit_text(c, "FIRMADO DIGITALMENTE", "Helvetica-Bold", 6.5, text_max_w))
-
-        c.setFont("Helvetica-Bold", 8.5)
-        c.drawString(text_x, y2 - 23, _fit_text(c, clean_signer, "Helvetica-Bold", 8.5, text_max_w))
+        c.drawString(text_x, y2 - 38, _fit_text(c, org_label, "Helvetica", 6.2, text_max_w))
 
         c.setFillColor(HexColor("#64748B"))
         c.setFont("Helvetica", 6.0)
-        c.drawString(text_x, y2 - 33, _fit_text(c, f"Fecha: {signed_date_str}", "Helvetica", 6.0, text_max_w))
+        c.drawString(text_x, y2 - 48, _fit_text(c, f"Fecha: {signed_date_str}", "Helvetica", 6.0, text_max_w))
 
-        c.setFillColor(HexColor("#0284C7"))
-        c.setFont("Helvetica", 5.5)
-        c.drawString(text_x, y1 + 5, _fit_text(c, "Verificacion PAdES - Escanear QR", "Helvetica", 5.5, text_max_w))
+        c.setFillColor(HexColor("#94A3B8"))
+        c.setFont("Helvetica-Oblique", 5.5)
+        c.drawString(text_x, y1 + 6, _fit_text(c, "Validez PAdES · Verificable con QR", "Helvetica-Oblique", 5.5, text_max_w))
+
+    elif box_h >= 50:
+        # Medium layout
+        c.setFillColor(HexColor("#64748B"))
+        c.setFont("Helvetica-Bold", 6.2)
+        c.drawString(text_x, y2 - 11, _fit_text(c, "FIRMADO DIGITALMENTE", "Helvetica-Bold", 6.2, text_max_w))
+
+        c.setFillColor(HexColor("#0F172A"))
+        c.setFont("Helvetica-Bold", 8.2)
+        c.drawString(text_x, y2 - 23, _fit_text(c, clean_signer, "Helvetica-Bold", 8.2, text_max_w))
+
+        c.setFillColor(HexColor("#64748B"))
+        c.setFont("Helvetica", 5.8)
+        c.drawString(text_x, y2 - 33, _fit_text(c, f"Fecha: {signed_date_str}", "Helvetica", 5.8, text_max_w))
+
+        c.setFillColor(HexColor("#94A3B8"))
+        c.setFont("Helvetica-Oblique", 5.2)
+        c.drawString(text_x, y1 + 5, _fit_text(c, "Validez PAdES · Verificable con QR", "Helvetica-Oblique", 5.2, text_max_w))
 
     else:
         # Compact layout
         c.setFillColor(HexColor("#0F172A"))
-        c.setFont("Helvetica-Bold", 7.5)
-        c.drawString(text_x, y2 - 12, _fit_text(c, clean_signer, "Helvetica-Bold", 7.5, text_max_w))
+        c.setFont("Helvetica-Bold", 7.2)
+        c.drawString(text_x, y2 - 12, _fit_text(c, clean_signer, "Helvetica-Bold", 7.2, text_max_w))
 
         c.setFillColor(HexColor("#64748B"))
-        c.setFont("Helvetica", 6.0)
-        c.drawString(text_x, y1 + 5, _fit_text(c, f"Fecha: {signed_date_str}", "Helvetica", 6.0, text_max_w))
+        c.setFont("Helvetica", 5.8)
+        c.drawString(text_x, y1 + 5, _fit_text(c, f"Fecha: {signed_date_str}", "Helvetica", 5.8, text_max_w))
 
     c.restoreState()
     c.showPage()

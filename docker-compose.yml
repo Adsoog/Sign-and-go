@@ -1,0 +1,29 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: signandgo:latest
+    container_name: signandgo_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DJANGO_SECRET_KEY=django-insecure-prod-signandgo-key-change-in-production-12345
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - SIGNBOX_VAULT_MASTER_KEY=o_E-1jOq2L8y6Nq3Z1X5_K8u3T9v1W4y7A2b5C8d0F3=
+      - SIGNANDGO_BASE_URL=http://localhost:8000
+      - PRIVATE_STORAGE_ROOT=/app/private_storage
+    volumes:
+      - signandgo_vault:/app/private_storage
+      - signandgo_media:/app/media
+      - signandgo_sqlite:/app/data
+
+volumes:
+  signandgo_vault:
+    driver: local
+  signandgo_media:
+    driver: local
+  signandgo_sqlite:
+    driver: local
