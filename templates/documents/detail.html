@@ -108,11 +108,11 @@
     <!-- 2. Public Links and QR Codes -->
     <div class="card mb-4 border-0 shadow-sm" style="border: 1px solid #E2E8F0 !important; border-radius: 16px;">
       <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-        <span class="fw-bold text-dark"><i class="bi bi-qr-code me-2 text-dark"></i>Enlaces y QR Públicos</span>
+        <span class="fw-bold text-dark"><i class="bi bi-qr-code me-2 text-dark"></i>Enlace y QR de Verificación</span>
         {% if doc.is_signed %}
-          <a href="{% url 'sharing:create' doc.id %}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.75rem;">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#newLinkModal" style="font-size: 0.75rem;">
             <i class="bi bi-plus-lg me-1"></i>Nuevo
-          </a>
+          </button>
         {% endif %}
       </div>
       <div class="card-body p-0 small">
@@ -120,32 +120,55 @@
         <div class="list-group list-group-flush">
           {% for link in share_links %}
           <div class="list-group-item p-3">
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="d-flex align-items-center gap-2">
+                {% if link.is_active %}
+                  <span class="badge badge-subtle-success">Activo</span>
+                {% elif link.revoked_at %}
+                  <span class="badge badge-subtle-danger">Revocado</span>
+                {% else %}
+                  <span class="badge badge-subtle-warning">Caducado</span>
+                {% endif %}
+                <span class="text-muted" style="font-size: 0.72rem;">{{ link.created_at|date:"d/m/Y H:i" }}</span>
+              </div>
               {% if link.is_active %}
-                <span class="badge badge-subtle-success">Activo</span>
-              {% elif link.revoked_at %}
-                <span class="badge badge-subtle-danger">Revocado</span>
-              {% else %}
-                <span class="badge badge-subtle-warning">Caducado</span>
-              {% endif %}
-              <span class="text-muted" style="font-size: 0.72rem;">{{ link.created_at|date:"d/m/Y" }}</span>
-            </div>
-            
-            <div class="text-muted mt-1" style="font-size: 0.75rem;">
-              Vence: {{ link.expires_at|date:"d/m/Y"|default:"Permanente" }}
-            </div>
-
-            {% if link.is_active %}
-            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
-              <a href="/d/{{ link.token_hash|slice:':16' }}/" target="_blank" class="small text-decoration-none">
-                <i class="bi bi-box-arrow-up-right me-1"></i>Abrir
-              </a>
-              <form method="post" action="{% url 'sharing:revoke' link.id %}" class="m-0 p-0 d-inline" onsubmit="return confirm('¿Deseas revocar este enlace?');">
+              <form method="post" action="{% url 'sharing:revoke' link.id %}" class="m-0 p-0" onsubmit="return confirm('¿Deseas revocar este enlace?');">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm text-danger p-0 border-0" style="font-size: 0.75rem;">
+                <button type="submit" class="btn btn-link text-danger p-0 border-0 text-decoration-none" style="font-size: 0.75rem;">
                   <i class="bi bi-x-circle me-1"></i>Revocar
                 </button>
               </form>
+              {% endif %}
+            </div>
+
+            {% if link.is_active %}
+            <!-- 1-Click Copy and Open -->
+            <div class="input-group input-group-sm mb-2" x-data="{ copied: false }">
+              <input type="text" class="form-control font-monospace" style="font-size: 0.75rem;" readonly value="{{ request.scheme }}://{{ request.get_host }}/d/{{ link.token_hash|slice:':16' }}/">
+              <button class="btn btn-dark" type="button" @click="navigator.clipboard.writeText($el.previousElementSibling.value); copied = true; setTimeout(() => copied = false, 2000)">
+                <span x-show="!copied"><i class="bi bi-clipboard me-1"></i>Copiar</span>
+                <span x-show="copied" class="text-success"><i class="bi bi-check-lg me-1"></i>¡Copiado!</span>
+              </button>
+              <a href="/d/{{ link.token_hash|slice:':16' }}/" target="_blank" class="btn btn-outline-secondary" title="Abrir página de verificación">
+                <i class="bi bi-box-arrow-up-right"></i>
+              </a>
+            </div>
+
+            <!-- QR code toggle -->
+            <div class="d-flex align-items-center justify-content-between pt-1">
+              <a class="small text-decoration-none fw-semibold text-dark" data-bs-toggle="collapse" href="#qrCollapse_{{ link.id }}" role="button">
+                <i class="bi bi-qr-code me-1 text-primary"></i>Ver código QR
+              </a>
+              <span class="text-muted" style="font-size: 0.72rem;">Vence: {{ link.expires_at|date:"d/m/Y"|default:"Permanente" }}</span>
+            </div>
+
+            <div class="collapse text-center py-2 mt-2 bg-light rounded-3 border" id="qrCollapse_{{ link.id }}">
+              <img src="{% url 'sharing:public_qr' link.token_hash|slice:':16' %}" alt="QR Verificación" style="width: 130px; height: 130px;" class="img-fluid rounded border mb-2 bg-white p-1">
+              <div>
+                <a href="{% url 'sharing:public_qr' link.token_hash|slice:':16' %}" download="QR_Verificacion.png" class="btn btn-sm btn-outline-secondary" style="font-size: 0.72rem;">
+                  <i class="bi bi-download me-1"></i>Descargar QR
+                </a>
+              </div>
             </div>
             {% endif %}
           </div>
@@ -156,7 +179,9 @@
           No hay enlaces públicos activos.
           {% if doc.is_signed %}
             <div class="mt-2">
-              <a href="{% url 'sharing:create' doc.id %}" class="btn btn-sm btn-outline-secondary">Generar Enlace / QR</a>
+              <button type="button" class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#newLinkModal">
+                <i class="bi bi-qr-code me-1"></i>Generar Enlace y QR
+              </button>
             </div>
           {% else %}
             <span class="d-block small mt-1 text-muted">Disponible una vez firmado el PDF.</span>
@@ -173,12 +198,40 @@
         <a href="{% url 'tracking:document_events' doc.id %}" class="small text-decoration-none">Ver todo</a>
       </div>
       <div class="card-body p-3">
+        <!-- Activity KPI summary -->
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div class="p-2 bg-light rounded-3 border text-center">
+              <span class="d-block text-muted" style="font-size: 0.7rem;">Aperturas / Visitas</span>
+              <strong class="fs-5 text-dark">{{ total_views }}</strong>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-2 bg-light rounded-3 border text-center">
+              <span class="d-block text-muted" style="font-size: 0.7rem;">Descargas</span>
+              <strong class="fs-5 text-dark">{{ total_downloads }}</strong>
+            </div>
+          </div>
+        </div>
+
         {% if recent_events %}
         <div class="timeline">
           {% for ev in recent_events %}
           <div class="timeline-item">
             <div class="timeline-marker"></div>
-            <div class="small fw-semibold text-dark">{{ ev.get_event_type_display }}</div>
+            <div class="small fw-semibold text-dark">
+              {% if ev.event_type == 'web_visit' or ev.event_type == 'web_preview' %}
+                <i class="bi bi-eye text-primary me-1"></i> Apertura del documento
+              {% elif ev.event_type == 'web_download' %}
+                <i class="bi bi-download text-success me-1"></i> Descarga del PDF firmado
+              {% elif ev.event_type == 'share_link_created' %}
+                <i class="bi bi-link-45deg text-secondary me-1"></i> Enlace público generado
+              {% elif ev.event_type == 'share_link_revoked' %}
+                <i class="bi bi-x-circle text-danger me-1"></i> Enlace revocado
+              {% else %}
+                {{ ev.get_event_type_display }}
+              {% endif %}
+            </div>
             <div class="text-muted" style="font-size: 0.72rem;">
               {{ ev.occurred_at|date:"d M Y, H:i" }} &bull; IP: {{ ev.ip_anonymized }}
             </div>
@@ -204,6 +257,47 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Modal: Generar nuevo enlace sin salir de la página -->
+<div class="modal fade" id="newLinkModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-dark"><i class="bi bi-qr-code me-2"></i>Generar Enlace y QR Público</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'sharing:create' doc.id %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p class="text-muted small mb-3">Crea un enlace público seguro para compartir tu documento firmado y rastrear sus visitas.</p>
+          
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Caducidad del enlace</label>
+            <select name="expires_days" class="form-select form-select-sm">
+              <option value="" selected>Permanente (sin fecha de caducidad)</option>
+              <option value="1">1 día</option>
+              <option value="7">7 días</option>
+              <option value="30">30 días</option>
+            </select>
+          </div>
+
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" name="allow_preview" id="modalPreview" checked>
+            <label class="form-check-label small" for="modalPreview">Permitir previsualización web en PDF</label>
+          </div>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" name="allow_download" id="modalDownload" checked>
+            <label class="form-check-label small" for="modalDownload">Permitir descarga del PDF firmado</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-dark">Crear Enlace</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

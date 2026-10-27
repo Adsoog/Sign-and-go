@@ -71,10 +71,21 @@ def document_upload_view(request):
 def document_detail_view(request, pk):
     workspace = request.workspace
     doc = get_object_or_404(Document, pk=pk, workspace=workspace)
-    # Get active share links
     share_links = doc.share_links.all().order_by("-created_at")
-    # Get recent events
-    recent_events = doc.events.all().order_by("-occurred_at")[:10]
+
+    # Metrics
+    total_views = doc.events.filter(event_type__in=["web_visit", "web_preview"]).count()
+    total_downloads = doc.events.filter(event_type="web_download").count()
+
+    # Deduplicate consecutive visit/preview events
+    raw_events = list(doc.events.all().order_by("-occurred_at")[:20])
+    clean_events = []
+    seen = set()
+    for ev in raw_events:
+        min_key = (ev.event_type, ev.occurred_at.strftime("%Y-%m-%d %H:%M"))
+        if min_key not in seen:
+            seen.add(min_key)
+            clean_events.append(ev)
 
     return render(
         request,
@@ -82,7 +93,9 @@ def document_detail_view(request, pk):
         {
             "doc": doc,
             "share_links": share_links,
-            "recent_events": recent_events,
+            "recent_events": clean_events[:6],
+            "total_views": total_views,
+            "total_downloads": total_downloads,
         },
     )
 

@@ -10,4 +10,5 @@ urlpatterns = [
     path("d/<str:token>/", views.public_verify_view, name="public_verify"),
     path("d/<str:token>/preview/", views.public_stream_pdf_view, name="public_preview"),
     path("d/<str:token>/download/", views.public_download_pdf_view, name="public_download"),
+    path("d/<str:token>/qr/", views.public_qr_image_view, name="public_qr"),
 ]

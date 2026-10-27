@@ -47,14 +47,36 @@ def create_share_link(
 
 def resolve_share_link(raw_token: str) -> ShareLink | None:
     """
-    Finds a ShareLink by hashing the provided token.
+    Finds a ShareLink by token or token hash.
     Returns the ShareLink instance if found (regardless of expired/revoked state,
     so views can display an informative state instead of generic 404).
+    Supports:
+    1. Direct match on SHA-256 hash of raw_token.
+    2. Direct match on token_hash (if raw_token was stored or hashed).
+    3. Prefix match on token_hash (for links rendered with hash prefix).
     """
     if not raw_token:
         return None
-    token_hash = hash_token(raw_token.strip())
-    return ShareLink.objects.select_related("document", "document__certificate_profile").filter(token_hash=token_hash).first()
+    token_str = raw_token.strip()
+
+    # 1. Match by SHA-256 hash
+    token_hash = hash_token(token_str)
+    link = ShareLink.objects.select_related("document", "document__certificate_profile").filter(token_hash=token_hash).first()
+    if link:
+        return link
+
+    # 2. Direct match on token_hash
+    link = ShareLink.objects.select_related("document", "document__certificate_profile").filter(token_hash=token_str).first()
+    if link:
+        return link
+
+    # 3. Prefix match on token_hash (e.g. 16-char prefix)
+    if len(token_str) >= 12:
+        link = ShareLink.objects.select_related("document", "document__certificate_profile").filter(token_hash__startswith=token_str).first()
+        if link:
+            return link
+
+    return None
 
 
 def revoke_share_link(link: ShareLink, actor=None) -> None:

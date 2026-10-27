@@ -25,7 +25,7 @@
 </head>
 <body>
 
-  {% if user.is_authenticated %}
+  {% if not is_public_page and user.is_authenticated %}
   <!-- Top Navbar -->
   <nav class="navbar navbar-expand-lg sb-navbar sticky-top py-2">
     <div class="container-fluid px-4">

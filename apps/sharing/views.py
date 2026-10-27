@@ -28,8 +28,8 @@ def create_link_view(request, doc_id):
             allow_preview=allow_preview,
             allow_download=allow_download,
         )
-        messages.success(request, f"Enlace público de verificación generado exitosamente.")
-        return redirect("sharing:link_created", link_id=link.id, raw_token=raw_token)
+        messages.success(request, f"Enlace público y código QR generados exitosamente.")
+        return redirect("documents:detail", pk=document.id)
 
     return render(request, "sharing/create_link.html", {"doc": document})
 
@@ -138,3 +138,20 @@ def public_download_pdf_view(request, token):
     response = FileResponse(open(file_path, "rb"), content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+def public_qr_image_view(request, token):
+    """
+    Serves a PNG QR code for the public verification page.
+    """
+    from django.http import HttpResponse
+    from apps.signing.appearance import generate_qr_image_bytes
+
+    link = resolve_share_link(token)
+    if not link:
+        raise Http404("Enlace no encontrado.")
+
+    base_url = request.build_absolute_uri("/").rstrip("/")
+    target_url = f"{base_url}/d/{token}/"
+    qr_bytes = generate_qr_image_bytes(target_url, size=240)
+    return HttpResponse(qr_bytes, content_type="image/png")
