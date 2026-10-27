@@ -116,7 +116,7 @@
   </header>
 
   <main class="py-2">
-    <div class="container">
+    <div class="container-fluid px-lg-5 px-3">
       {% if messages %}
         {% for message in messages %}
           <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
