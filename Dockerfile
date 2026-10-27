@@ -33,7 +33,8 @@ RUN mkdir -p /app/private_storage/certificates \
              /app/private_storage/documents/sources \
              /app/private_storage/documents/signed \
              /app/media \
-             /app/staticfiles
+             /app/staticfiles \
+             /app/data
 
 # Create non-root system user for security
 RUN useradd -u 1000 -U appuser && \

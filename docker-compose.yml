@@ -10,11 +10,16 @@ services:
       - "8000:8000"
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
-      - DJANGO_SECRET_KEY=django-insecure-prod-signandgo-key-change-in-production-12345
-      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - DJANGO_SECRET_KEY=django-prod-signandgo-sec-98432a10cbe4e120d88efb0923e1a0b3
+      - DJANGO_ALLOWED_HOSTS=signandgo.amostudio.online,localhost,127.0.0.1,0.0.0.0
+      - DJANGO_CSRF_TRUSTED_ORIGINS=http://signandgo.amostudio.online,https://signandgo.amostudio.online,http://localhost:8000
       - SIGNBOX_VAULT_MASTER_KEY=o_E-1jOq2L8y6Nq3Z1X5_K8u3T9v1W4y7A2b5C8d0F3=
-      - SIGNANDGO_BASE_URL=http://localhost:8000
+      - SIGNBOX_ENCRYPTION_KEY=o_E-1jOq2L8y6Nq3Z1X5_K8u3T9v1W4y7A2b5C8d0F3=
+      - SIGNANDGO_BASE_URL=http://signandgo.amostudio.online
+      - SIGNBOX_BASE_URL=http://signandgo.amostudio.online
+      - DATABASE_URL=sqlite:////app/data/db.sqlite3
       - PRIVATE_STORAGE_ROOT=/app/private_storage
+      - SECURE_SSL_REDIRECT=False
     volumes:
       - signandgo_vault:/app/private_storage
       - signandgo_media:/app/media

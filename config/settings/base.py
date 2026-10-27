@@ -35,9 +35,24 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("true", "1", "yes")
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]").split(",")
+    for host in os.environ.get(
+        "DJANGO_ALLOWED_HOSTS",
+        "localhost,127.0.0.1,[::1],signandgo.amostudio.online"
+    ).split(",")
     if host.strip()
 ]
+
+# CSRF Trusted Origins for HTTPS/HTTP reverse proxies
+_csrf_env = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+if _csrf_env:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_env.split(",") if o.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://signandgo.amostudio.online",
+        "https://signandgo.amostudio.online",
+    ]
 
 # Application definition
 DJANGO_APPS = [
@@ -66,6 +81,7 @@ INSTALLED_APPS = DJANGO_APPS + PROJECT_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -75,6 +91,8 @@ MIDDLEWARE = [
     "apps.core.middleware.SecurityHeadersMiddleware",
     "apps.workspaces.middleware.WorkspaceMiddleware",
 ]
+
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 ROOT_URLCONF = "config.urls"
 
@@ -169,6 +187,15 @@ STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
+
 # Media & Private Storage (Private files NEVER served directly via nginx/apache)
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -182,7 +209,11 @@ SIGNBOX_ENCRYPTION_KEY = os.environ.get(
     "SIGNBOX_ENCRYPTION_KEY",
     "_MUoKJwLLy2tWngwS9ycJhB26l_04W89DOjQacBty0k="
 )
-SIGNBOX_BASE_URL = os.environ.get("SIGNBOX_BASE_URL", "http://localhost:8000").rstrip("/")
+SIGNBOX_BASE_URL = os.environ.get(
+    "SIGNANDGO_BASE_URL",
+    os.environ.get("SIGNBOX_BASE_URL", "http://signandgo.amostudio.online")
+).rstrip("/")
+SIGNANDGO_BASE_URL = SIGNBOX_BASE_URL
 
 # Upload limits
 MAX_DOCUMENT_SIZE_BYTES = int(os.environ.get("MAX_DOCUMENT_SIZE_BYTES", 25 * 1024 * 1024))      # 25 MB
