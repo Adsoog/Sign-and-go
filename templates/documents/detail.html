@@ -50,13 +50,13 @@
           <span class="badge bg-light text-muted border small">{{ doc.page_count }} págs</span>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <a href="{% if doc.is_signed %}{% url 'documents:view_file' doc.id 'signed' %}{% else %}{% url 'documents:view_file' doc.id 'source' %}{% endif %}#view=FitH" class="btn btn-sm btn-outline-secondary" target="_blank" title="Abrir en pestaña nueva">
+          <a href="{% if doc.is_signed %}{% url 'documents:view_file' doc.id 'signed' %}{% else %}{% url 'documents:view_file' doc.id 'source' %}{% endif %}#view=FitH&zoom=page-width" class="btn btn-sm btn-outline-secondary" target="_blank" title="Abrir en pestaña nueva">
             <i class="bi bi-box-arrow-up-right me-1"></i> Pantalla Completa
           </a>
         </div>
       </div>
-      <div class="card-body p-0" style="height: 760px; background-color: #0F172A;">
-        <iframe src="{% url 'documents:view_file' doc.id doc.is_signed|yesno:'signed,source' %}#view=FitH" width="100%" height="100%" style="border: none; display: block;"></iframe>
+      <div class="card-body p-0" style="height: calc(100vh - 180px); min-height: 680px; background-color: #0F172A;">
+        <iframe src="{% url 'documents:view_file' doc.id doc.is_signed|yesno:'signed,source' %}#view=FitH&zoom=page-width" width="100%" height="100%" style="border: none; display: block;"></iframe>
       </div>
     </div>
   </div>

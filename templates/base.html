@@ -39,6 +39,27 @@
       </button>
 
       <div class="collapse navbar-collapse" id="navContent">
+        <!-- Mobile Navigation Links for Small Screens (< md) -->
+        <div class="d-md-none py-3 border-bottom mb-3">
+          <nav class="nav flex-column gap-1">
+            <a class="sb-nav-link {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard:home' %}">
+              <i class="bi bi-grid"></i> Panel Principal
+            </a>
+            <a class="sb-nav-link {% if request.resolver_match.app_name == 'documents' and request.resolver_match.url_name != 'upload' %}active{% endif %}" href="{% url 'documents:list' %}">
+              <i class="bi bi-file-earmark-pdf"></i> Mis Documentos
+            </a>
+            <a class="sb-nav-link {% if request.resolver_match.url_name == 'upload' and request.resolver_match.app_name == 'documents' %}active{% endif %}" href="{% url 'documents:upload' %}">
+              <i class="bi bi-cloud-arrow-up"></i> Subir Documento
+            </a>
+            <a class="sb-nav-link {% if request.resolver_match.app_name == 'certificates' %}active{% endif %}" href="{% url 'certificates:list' %}">
+              <i class="bi bi-safe"></i> Bóveda de Certificados
+            </a>
+            <a class="sb-nav-link {% if request.resolver_match.app_name == 'verification' %}active{% endif %}" href="{% url 'verification:compare' %}">
+              <i class="bi bi-patch-check"></i> Comparador de PDF
+            </a>
+          </nav>
+        </div>
+
         <div class="ms-auto d-flex align-items-center gap-3">
           <div class="dropdown">
             <a class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2 rounded-pill px-3" href="#" role="button" data-bs-toggle="dropdown">
