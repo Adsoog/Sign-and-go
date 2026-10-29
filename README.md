@@ -63,8 +63,34 @@ Diseñado como un monolito robusto en **Django 5.2**, sin dependencias complejas
 | **Cifrado en Reposo** | cryptography (Fernet AES-CBC + HMAC-SHA256) |
 | **Manipulación de PDF** | pypdf y ReportLab |
 | **Códigos QR** | qrcode (PIL / Pillow) |
-| **Base de Datos** | SQLite (desarrollo rápido) / PostgreSQL (producción) |
+| **Base de Datos** | SQLite (desarrollo y despliegue rápido) / PostgreSQL |
 | **Pruebas** | pytest y pytest-django |
+
+---
+
+## Identidad Visual, Tipografía y Estilo General
+
+El proyecto Sign & Go está diseñado siguiendo las directrices estéticas de productos digitales de alta gama (inspirado en la sobriedad y pulcritud de interfaces como Linear, Stripe, Apple y Vercel).
+
+### 1. Filosofía de Diseño General
+- **Minimalismo funcional:** Eliminación de ruido visual, bordes toscos y colores estridentes. La interfaz cede todo el protagonismo a los documentos PDF y a las garantías de seguridad.
+- **Paleta de Colores:**
+  - **Superficie y fondo:** Blanco puro (`#FFFFFF`) y lienzo de trabajo suave (`#F8FAFC`) con trama de cuadrícula de puntos (`#CBD5E1`) en la landing estilo *canvas board*.
+  - **Texto y contraste:** Gris grafito profundo (`#0F172A`) en lugar de negro puro, lo que proporciona máxima legibilidad con menor fatiga visual.
+  - **Acento corporativo:** Azul tecnológico (`#0284C7` a `#2563EB`) aplicado en degradados suaves en titulares principales y acciones prioritarias.
+  - **Acentos de estado:** Verde esmeralda suave (`#10B981`) para documentos verificados y firmas válidas.
+- **Microinteracciones y componentes:** Tarjetas limpias con bordes delgados de 1px (`#E2E8F0`), sombras difusas de baja opacidad, botones redondeados en píldora (`rounded-pill`) y transiciones sutiles en estados *hover*.
+
+### 2. Tipografía y Fuentes
+
+| Uso | Tipografía | Pesos y Configuración | Detalle y Razón de Uso |
+|---|---|---|---|
+| **Lectura principal y UI** | **[Inter](https://fonts.google.com/specimen/Inter)** (Google Fonts) | 400 (Regular), 500 (Medium), 600 (SemiBold), 700 (Bold), 800 (ExtraBold) | Diseñada por Rasmus Andersson específicamente para pantallas e interfaces de usuario. Ofrece proporciones armónicas y excelente legibilidad tanto en textos diminutos como en titulares. |
+| **Titulares destacados** | **Inter** (ExtraBold) | `font-weight: 800`, `letter-spacing: -0.035em`, `line-height: 1.15` | El **tracking negativo** (-0.035em) reduce sutilmente el espacio entre letras, dándole a los títulos (*"Lleva el control de tus documentos..."*) un estilo compacto, editorial y contundente. |
+| **Criptografía y Huellas** | **System Monospace** (Pila nativa del SO) | `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace` | Garantiza que cada carácter mida exactamente lo mismo (esencial para alinear hashes SHA-256 y tokens) **sin penalizar el rendimiento**, ya que aprovecha las fuentes del sistema (Consolas en Windows, SF Mono en Mac/iOS, etc.) con 0ms de carga. |
+
+### 3. Iconografía
+- **Bootstrap Icons 1.11+:** Iconos vectoriales de trazo lineal limpio y uniforme para acciones de descarga, copiado, seguridad, boveda y navegación.
 
 ---
 
